@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Text;
-
 using UnityEditor;
 using UnityEngine;
 
@@ -151,134 +150,54 @@ namespace Toolbox.Editor.Hierarchy
             /// <summary>
             /// Cached components of the last prepared <see cref="target"/>.
             /// </summary>
-            private List<Component> cachedComponents;
-
-
-            private void CacheComponents(GameObject target)
-            {
-                var components = target.GetComponents<Component>();
-                cachedComponents = new List<Component>(components.Length);
-                //cache only valid (non-null) components
-                foreach (var component in components)
-                {
-                    if (component)
-                    {
-                        cachedComponents.Add(component);
-                    }
-                }
-            }
-
-            private GUIContent GetTooltip(Rect rect)
-            {
-                var componentsCount = cachedComponents.Count;
-                var tooltipBuilder = new StringBuilder();
-                var tooltipContent = new GUIContent();
-
-                tooltipBuilder.Append("Components:\n");
-                for (var i = 1; i < componentsCount; i++)
-                {
-                    tooltipBuilder.Append("- ");
-                    tooltipBuilder.Append(cachedComponents[i].GetType().Name);
-                    if (componentsCount - 1 != i)
-                    {
-                        tooltipBuilder.Append("\n");
-                    }
-                }
-
-                tooltipContent.tooltip = tooltipBuilder.ToString();
-                return tooltipContent;
-            }
-
-            private GUIContent GetContent(Component component)
-            {
-                var content = EditorGUIUtility.ObjectContent(component, component.GetType());
-                if (content.image == null)
-                {
-                    content.image = componentIcon;
-                }
-
-                return content;
-            }
-
+            private List<Component> cachedComponents = new();
 
             public override bool Prepare(GameObject target, Rect availableRect)
             {
                 var isValid = base.Prepare(target, availableRect);
-                if (isValid)
-                {
-                    baseWidth = Style.minWidth;
-                    var rect = availableRect;
-                    rect.xMin = rect.xMax - baseWidth;
-                    if (rect.Contains(Event.current.mousePosition))
-                    {
-                        isHighlighted = true;
-                        CacheComponents(target);
-                        summWidth = cachedComponents.Count > 1
-                            ? (cachedComponents.Count - 1) * baseWidth
-                            : baseWidth;
-                    }
-                    else
-                    {
-                        isHighlighted = false;
-                        summWidth = baseWidth;
-                    }
+                if (!isValid) return false;
 
-                    componentIcon = componentIcon ?? EditorGUIUtility.IconContent("cs Script Icon").image;
-                    transformIcon = transformIcon ?? EditorGUIUtility.IconContent("Transform Icon").image;
-                    return true;
-                }
+                baseWidth = Style.minWidth;
+                isHighlighted = availableRect.Contains(Event.current.mousePosition);
 
-                return false;
+                target.GetComponents(cachedComponents);
+                summWidth = cachedComponents.Count > 1 ? (cachedComponents.Count - 1) * baseWidth : baseWidth;
+
+                componentIcon = componentIcon == null ? EditorGUIUtility.IconContent("cs Script Icon").image : componentIcon;
+                transformIcon = transformIcon == null ? EditorGUIUtility.IconContent("Transform Icon").image : transformIcon;
+                return true;
             }
 
-            public override float GetWidth()
-            {
-                return summWidth;
-            }
+            public override float GetWidth() => summWidth;
 
             public override void OnGui(Rect rect)
             {
-                var tooltip = string.Empty;
-                var texture = componentIcon;
-
                 rect.xMin = rect.xMax - baseWidth;
 
-                if (isHighlighted)
+                //draw tooltip based on all available components
+                rect.xMin -= baseWidth * (cachedComponents.Count - 1);
+
+                var iconRect = rect;
+                iconRect.xMin = rect.xMin;
+                iconRect.xMax = rect.xMin + baseWidth;
+
+                //draw all icons associated to cached components (except transform)
+                for (var i = cachedComponents.Count - 1; i >= 0; i--)
                 {
-                    var componentsCount = cachedComponents.Count;
-                    if (componentsCount > 1)
+                    var cached = cachedComponents[i];
+                    var iconTexture = EditorGUIUtility.ObjectContent(cached, cached.GetType()).image;
+                    if (iconTexture == null) iconTexture = componentIcon;
+
+                    //draw icon for the current component
+                    GUI.Label(iconRect, new GUIContent(iconTexture));
+                    GUI.Label(iconRect, new GUIContent
                     {
-                        //draw tooltip based on all available components
-                        GUI.Label(rect, GetTooltip(rect));
+                        tooltip = cached.GetType().Name
+                    });
 
-                        rect.xMin -= baseWidth * (componentsCount - 2);
-
-                        var iconRect = rect;
-                        iconRect.xMin = rect.xMin;
-                        iconRect.xMax = rect.xMin + baseWidth;
-
-                        //draw all icons associated to cached components (except transform)
-                        for (var i = 1; i < cachedComponents.Count; i++)
-                        {
-                            var component = cachedComponents[i];
-                            var content = GetContent(component);
-
-                            //draw icon for the current component
-                            GUI.Label(iconRect, new GUIContent(content.image));
-                            //adjust rect for the next script icon
-                            iconRect.x += baseWidth;
-                        }
-
-                        return;
-                    }
-                    else
-                    {
-                        texture = transformIcon;
-                        tooltip = "There is no additional component";
-                    }
+                    //adjust rect for the next script icon
+                    iconRect.x += baseWidth;
                 }
-
-                GUI.Label(rect, new GUIContent(texture, tooltip));
             }
         }
 
