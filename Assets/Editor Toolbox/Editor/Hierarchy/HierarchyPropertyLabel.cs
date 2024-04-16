@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Text;
 using UnityEditor;
+using UnityEditorInternal;
 using UnityEngine;
 
 namespace Toolbox.Editor.Hierarchy
@@ -13,7 +14,6 @@ namespace Toolbox.Editor.Hierarchy
     public abstract class HierarchyPropertyLabel
     {
         protected GameObject target;
-
 
         public virtual bool Prepare(GameObject target, Rect availableRect)
         {
@@ -59,6 +59,8 @@ namespace Toolbox.Editor.Hierarchy
                     return new HierarchyLayerLabel();
                 case HierarchyItemDataType.Script:
                     return new HierarchyScriptLabel();
+                case HierarchyItemDataType.ChildCount:
+                    return new HierarchyChildCountLabel();
             }
 
             return null;
@@ -78,17 +80,28 @@ namespace Toolbox.Editor.Hierarchy
             }
         }
 
+        private class HierarchyChildCountLabel : HierarchyPropertyLabel
+        {
+            public override void OnGui(Rect rect)
+            {
+                var childCount = target.transform.childCount;
+                var descendantCount = target.transform.DescendantCount();
+                var tooltip = $"{childCount} children, {descendantCount} descendants";
+                var content = new GUIContent(descendantCount.ToString(), tooltip);
+                EditorGUI.LabelField(rect, content, Style.centreAlignTextStyle);
+            }
+        }
+
+
         private class HierarchyToggleLabel : HierarchyPropertyLabel
         {
             public override void OnGui(Rect rect)
             {
                 var content = new GUIContent(string.Empty, "Enable/disable GameObject");
+
                 //NOTE: using EditorGUI.Toggle will cause bug and deselect all hierarchy toggles when you will pick a multi-selected property in the Inspector
-                var result = GUI.Toggle(new Rect(rect.x + EditorGUIUtility.standardVerticalSpacing,
-                        rect.y,
-                        rect.width,
-                        rect.height),
-                    target.activeSelf, content);
+                var toggleRect = rect.WithX(rect.x + EditorGUIUtility.standardVerticalSpacing);
+                var result = GUI.Toggle(toggleRect, target.activeSelf, content);
 
                 if (rect.Contains(Event.current.mousePosition))
                 {
@@ -145,7 +158,7 @@ namespace Toolbox.Editor.Hierarchy
             private float baseWidth;
             private float summWidth;
 
-            private bool isHighlighted;
+            private bool isRowHovered;
 
             /// <summary>
             /// Cached components of the last prepared <see cref="target"/>.
@@ -158,10 +171,10 @@ namespace Toolbox.Editor.Hierarchy
                 if (!isValid) return false;
 
                 baseWidth = Style.minWidth;
-                isHighlighted = availableRect.Contains(Event.current.mousePosition);
+                isRowHovered = availableRect.Contains(Event.current.mousePosition);
 
                 target.GetComponents(cachedComponents);
-                summWidth = cachedComponents.Count > 1 ? (cachedComponents.Count - 1) * baseWidth : baseWidth;
+                summWidth = cachedComponents.Count > 1 ? cachedComponents.Count * baseWidth : baseWidth;
 
                 componentIcon = componentIcon == null ? EditorGUIUtility.IconContent("cs Script Icon").image : componentIcon;
                 transformIcon = transformIcon == null ? EditorGUIUtility.IconContent("Transform Icon").image : transformIcon;
@@ -177,28 +190,65 @@ namespace Toolbox.Editor.Hierarchy
                 //draw tooltip based on all available components
                 rect.xMin -= baseWidth * (cachedComponents.Count - 1);
 
-                var iconRect = rect;
-                iconRect.xMin = rect.xMin;
-                iconRect.xMax = rect.xMin + baseWidth;
+                var currentIconRect = rect;
+                currentIconRect.xMin = rect.xMin;
+                currentIconRect.xMax = rect.xMin + baseWidth;
 
                 //draw all icons associated to cached components (except transform)
                 for (var i = cachedComponents.Count - 1; i >= 0; i--)
                 {
-                    var cached = cachedComponents[i];
-                    var iconTexture = EditorGUIUtility.ObjectContent(cached, cached.GetType()).image;
+                    var component = cachedComponents[i];
+                    var iconTexture = EditorGUIUtility.ObjectContent(component, component.GetType()).image;
                     if (iconTexture == null) iconTexture = componentIcon;
 
-                    //draw icon for the current component
-                    GUI.Label(iconRect, new GUIContent(iconTexture));
-                    GUI.Label(iconRect, new GUIContent
+                    var text = string.Empty;
+                    var tooltip = component.GetType().Name;
+
+                    if (component is Transform t)
                     {
-                        tooltip = cached.GetType().Name
-                    });
+                        var descendantCount = t.DescendantCount();
+                        text = descendantCount.ToString();
+                        tooltip = $"{t.childCount} children, {descendantCount} descendants";
+                    }
+
+                    //draw icon with tooltip for the current component
+
+                    Color original = GUI.color;
+                    var isComponentHovered = currentIconRect.Contains(Event.current.mousePosition);
+                    GUI.color = GUI.color.WithAlpha(isComponentHovered ? 1f : 0.4f);
+                    GUI.Label(currentIconRect, new GUIContent(iconTexture));
+                    GUI.color = original;
+
+                    var centreAlignTextStyle = Style.centreAlignTextStyle;
+                    centreAlignTextStyle.fontStyle = FontStyle.Bold;
+                    if (GUI.Button(currentIconRect, new GUIContent { text = text, tooltip = tooltip }, centreAlignTextStyle))
+                    {
+                        SelectComponentAndCollapseOthers(component);
+                    }
 
                     //adjust rect for the next script icon
-                    iconRect.x += baseWidth;
+                    currentIconRect.x += baseWidth;
                 }
             }
+        }
+
+        private void SelectComponentAndCollapseOthers(Object selectedComponent)
+        {
+            Debug.Log(selectedComponent);
+            Selection.activeObject = selectedComponent;
+
+            ActiveEditorTracker.sharedTracker.ForceRebuild();
+            EditorWindow inspectorWindow = EditorWindow.GetWindow(typeof(UnityEditor.Editor).Assembly.GetType("UnityEditor.InspectorWindow"));
+            ActiveEditorTracker.sharedTracker.ForceRebuild();
+
+            UnityEditor.Editor[] editors = ActiveEditorTracker.sharedTracker.activeEditors;
+            foreach (var editor in editors)
+            {
+                if (editor.GetType().Name == "TransformEditor") continue;
+                InternalEditorUtility.SetIsInspectorExpanded(editor.target, editor.target == selectedComponent);
+            }
+
+            inspectorWindow.Repaint();
         }
 
         #endregion

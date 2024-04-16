@@ -460,11 +460,9 @@ namespace Toolbox.Editor
 
             internal readonly static List<HierarchyItemDataType> rowDataTypes = new List<HierarchyItemDataType>()
             {
-                HierarchyItemDataType.Icon,
+                HierarchyItemDataType.ChildCount,
                 HierarchyItemDataType.Toggle,
-                HierarchyItemDataType.Tag,
-                HierarchyItemDataType.Layer,
-                HierarchyItemDataType.Script
+                HierarchyItemDataType.Script,
             };
         }
     }
