@@ -183,6 +183,10 @@ namespace Toolbox.Editor.Hierarchy
 
             public override float GetWidth() => summWidth;
 
+            public static readonly Dictionary<Component, Rect> ComponentToRect = new();
+            private static Rect _drawRect;
+            private static double _drawTime;
+
             public override void OnGui(Rect rect)
             {
                 rect.xMin = rect.xMax - baseWidth;
@@ -198,6 +202,8 @@ namespace Toolbox.Editor.Hierarchy
                 for (var i = cachedComponents.Count - 1; i >= 0; i--)
                 {
                     var component = cachedComponents[i];
+                    ComponentToRect.TryAdd(component, currentIconRect);
+
                     var iconTexture = EditorGUIUtility.ObjectContent(component, component.GetType()).image;
                     if (iconTexture == null) iconTexture = componentIcon;
 
@@ -215,6 +221,12 @@ namespace Toolbox.Editor.Hierarchy
 
                     Color original = GUI.color;
                     var isComponentHovered = currentIconRect.Contains(Event.current.mousePosition);
+                    if (isComponentHovered)
+                    {
+                        _drawRect = new Rect(currentIconRect.x, currentIconRect.y, 3, 90);
+                        _drawTime = EditorApplication.timeSinceStartup;
+                    }
+
                     GUI.color = GUI.color.WithAlpha(isComponentHovered ? 1f : 0.4f);
                     GUI.Label(currentIconRect, new GUIContent(iconTexture));
                     GUI.color = original;
@@ -228,6 +240,14 @@ namespace Toolbox.Editor.Hierarchy
 
                     //adjust rect for the next script icon
                     currentIconRect.x += baseWidth;
+
+                    if (EditorApplication.timeSinceStartup - _drawTime < 0.05)
+                    {
+                        // use Graphics.DrawTexture to draw a texture in teh window
+                        Graphics.DrawTexture(new Rect(100,100, 100, 100), EditorGUIUtility.whiteTexture);
+
+                        EditorGUI.DrawRect(_drawRect, Color.red);
+                    }
                 }
             }
         }
