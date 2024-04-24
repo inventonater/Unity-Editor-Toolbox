@@ -1,32 +1,40 @@
 ﻿using System;
 using System.Reflection;
+using Toolbox.Editor;
 using UnityEditor;
 using UnityEngine;
+using Editor = UnityEditor.Editor;
+using Object = UnityEngine.Object;
 
-
-[CustomEditor(typeof(MyClass))]
-public class MyClassEditor : Editor
+[CustomEditor(typeof(Behaviour), true, isFallback = true)]
+[CanEditMultipleObjects]
+public class MyClassEditor : ToolboxEditor
 {
+    private const double UpdateThreshold = 0.2f;
+    private double _lastUpdateTime;
+
     private void OnEnable()
     {
-        EditorApplication.update += Up;
+        EditorApplication.update += ThrottledUpdate;
     }
 
     private void OnDisable()
     {
-        EditorApplication.update -= Up;
+        EditorApplication.update -= ThrottledUpdate;
     }
 
-    private void Up()
+    private void ThrottledUpdate()
     {
-        Debug.Log($"UP {EditorApplication.timeSinceStartup}");
+        if (EditorApplication.timeSinceStartup - _lastUpdateTime < UpdateThreshold) return;
+        _lastUpdateTime = EditorApplication.timeSinceStartup;
         EditorUtility.SetDirty(target);
-        Repaint();
     }
 
-    public override void OnInspectorGUI()
+    public override void DrawCustomInspector()
     {
-        SampleBehaviour1 myClass = (SampleBehaviour1)target;
+        base.DrawCustomInspector();
+
+        Object myClass = (Object)target;
 
         // Get all private fields using reflection
         FieldInfo[] fields = myClass.GetType().GetFields(BindingFlags.Instance | BindingFlags.NonPublic);
@@ -38,7 +46,7 @@ public class MyClassEditor : Editor
 
             // Render the field based on its type
             string fieldName = field.Name;
-            if (fieldName.EndsWith("__BackingField")) fieldName = fieldName.Substring(1, fieldName.IndexOf('>') -1);
+            if (fieldName.EndsWith("__BackingField")) fieldName = fieldName.Substring(1, fieldName.IndexOf('>') - 1);
 
             if (field.FieldType == typeof(int))
             {

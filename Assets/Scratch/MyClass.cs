@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 
+[ExecuteInEditMode]
 public class MyClass : MonoBehaviour
 {
     public void Update()
@@ -21,5 +22,4 @@ public class MyClass : MonoBehaviour
     {
         get { return myValue * 2; }
     }
-
 }
