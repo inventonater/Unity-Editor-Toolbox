@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using R3;
+using UnityEngine;
 
 [ExecuteInEditMode]
 public class MyClass : MonoBehaviour
@@ -13,6 +14,7 @@ public class MyClass : MonoBehaviour
 
     private int _thingField = 33;
     private int _thingProperty { get; set; } = 33;
+    public MyProp<Transform> _trans;
 
     [SerializeReference, ReferencePicker(ForceUninitializedInstance = true)]
     public IMyInterface Intr = new MyImpl();

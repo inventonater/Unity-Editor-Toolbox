@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "com.cysharp.r3": "1.1.11",
     "org.nuget.r3": "1.1.11",
     "com.cysharp.unitask": "2.5.4",
     "com.cysharp.observablecollections": "1.1.3",
