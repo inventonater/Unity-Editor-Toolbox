@@ -37,11 +37,19 @@ namespace Toolbox.Editor
         private static readonly List<HierarchyPropertyLabel> propertyLabels = new List<HierarchyPropertyLabel>();
 
 
+        private static bool _wasModifierIsHeld;
         /// <summary>
         /// Tries to display item label in the Hierarchy Window.
         /// </summary>
         private static void OnItemCallback(int instanceId, Rect rect)
         {
+            var current = Event.current;
+            var keyDown = current.type == EventType.KeyDown && current.keyCode == KeyCode.Space;
+            var keyUp = current.type == EventType.KeyUp && current.keyCode == KeyCode.Space;
+
+            if(!_wasModifierIsHeld && keyDown) _wasModifierIsHeld = true;
+            if(_wasModifierIsHeld && keyUp) _wasModifierIsHeld = false;
+
             if (!IsOverlayAllowed)
             {
                 return;
@@ -62,7 +70,7 @@ namespace Toolbox.Editor
                         DrawHeaderItemLabel(rect, gameObject, label);
                         break;
                     case LabelType.Default:
-                        DrawDefaultItemLabel(rect, gameObject, label, Event.current.control);
+                        DrawDefaultItemLabel(rect, gameObject, label, _wasModifierIsHeld);
                         break;
                 }
             }

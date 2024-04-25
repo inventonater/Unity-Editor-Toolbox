@@ -67,7 +67,7 @@ namespace Toolbox.Editor
             if (settings == null)
             {
                 UseToolboxSceneView = true;
-                SelectorKey = KeyCode.LeftControl;
+                SelectorKey = DefaultSelectorKey;
             }
             else
             {
@@ -86,6 +86,7 @@ namespace Toolbox.Editor
         /// <summary>
         /// Which key should activate the scene view.
         /// </summary>
-        public static KeyCode SelectorKey { get; set; } = KeyCode.LeftControl;
+        public static KeyCode SelectorKey { get; set; } = DefaultSelectorKey;
+        public const KeyCode DefaultSelectorKey = KeyCode.Space;
     }
 }

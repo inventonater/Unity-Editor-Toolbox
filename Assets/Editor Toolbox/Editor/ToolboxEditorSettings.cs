@@ -93,7 +93,7 @@ namespace Toolbox.Editor
         private bool useToolboxSceneView = true;
 
         [SerializeField]
-        private KeyCode selectorKey = KeyCode.Tab;
+        private KeyCode selectorKey = ToolboxEditorSceneView.DefaultSelectorKey;
 
         [SerializeField, Tooltip("Set to false if you don't want to use Toolbox attributes and related features.")]
         private bool useToolboxDrawers = true;
@@ -269,7 +269,7 @@ namespace Toolbox.Editor
         public void ResetSceneSettings()
         {
             UseToolboxSceneView = true;
-            SelectorKey = KeyCode.LeftControl;
+            SelectorKey = ToolboxEditorSceneView.DefaultSelectorKey;
         }
 
         public void SetAllPossibleDecoratorDrawers()
