@@ -49,13 +49,11 @@ namespace Toolbox.Editor
 #endif
         }
 
+        public static bool IsSelectorKeyDown => Event.current.type == EventType.KeyDown && Event.current.keyCode == SelectorKey;
+
         private static void SceneViewDuringSceneGui(UnityEditor.SceneView sceneView)
         {
-            if (Event.current.type != EventType.KeyDown ||
-                Event.current.keyCode != SelectorKey)
-            {
-                return;
-            }
+            if (!IsSelectorKeyDown) return;
 
             var objectsUnderCursor = GetObjectsUnderCursor();
             if (objectsUnderCursor.Count > 0)
@@ -88,6 +86,6 @@ namespace Toolbox.Editor
         /// <summary>
         /// Which key should activate the scene view.
         /// </summary>
-        private static KeyCode SelectorKey { get; set; } = KeyCode.LeftControl;
+        public static KeyCode SelectorKey { get; set; } = KeyCode.LeftControl;
     }
 }

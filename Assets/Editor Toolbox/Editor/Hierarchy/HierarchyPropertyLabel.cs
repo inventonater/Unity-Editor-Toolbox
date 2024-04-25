@@ -1,5 +1,6 @@
-﻿using System.Collections.Generic;
-using System.Text;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEditorInternal;
 using UnityEngine;
@@ -39,7 +40,7 @@ namespace Toolbox.Editor.Hierarchy
             return Style.minWidth;
         }
 
-        public abstract void OnGui(Rect rect);
+        public abstract void OnGui(Rect rect, bool isModifierKeyPressed);
 
 
         /// <summary>
@@ -66,11 +67,21 @@ namespace Toolbox.Editor.Hierarchy
             return null;
         }
 
+        private static void DrawDescendantCount(Rect rect, Transform targetTransform)
+        {
+
+            var childCount = targetTransform.childCount;
+            var descendantCount = targetTransform.DescendantCount();
+            var tooltip = $"{childCount} children, {descendantCount} descendants";
+            var content = new GUIContent(descendantCount.ToString(), tooltip);
+            EditorGUI.LabelField(rect, content, Style.defaultAlignTextStyle);
+        }
+
         #region Classes: Internal
 
         private class HierarchyIconLabel : HierarchyPropertyLabel
         {
-            public override void OnGui(Rect rect)
+            public override void OnGui(Rect rect, bool isModifierKeyPressed)
             {
                 var content = EditorGuiUtility.GetObjectContent(target, typeof(GameObject));
                 if (content.image)
@@ -82,20 +93,16 @@ namespace Toolbox.Editor.Hierarchy
 
         private class HierarchyChildCountLabel : HierarchyPropertyLabel
         {
-            public override void OnGui(Rect rect)
+            public override void OnGui(Rect rect, bool isModifierKeyPressed)
             {
-                var childCount = target.transform.childCount;
-                var descendantCount = target.transform.DescendantCount();
-                var tooltip = $"{childCount} children, {descendantCount} descendants";
-                var content = new GUIContent(descendantCount.ToString(), tooltip);
-                EditorGUI.LabelField(rect, content, Style.centreAlignTextStyle);
+                var targetTransform = target.transform;
+                DrawDescendantCount(rect, targetTransform);
             }
         }
 
-
         private class HierarchyToggleLabel : HierarchyPropertyLabel
         {
-            public override void OnGui(Rect rect)
+            public override void OnGui(Rect rect, bool isModifierKeyPressed)
             {
                 var content = new GUIContent(string.Empty, "Enable/disable GameObject");
 
@@ -121,7 +128,7 @@ namespace Toolbox.Editor.Hierarchy
                 return Style.maxWidth;
             }
 
-            public override void OnGui(Rect rect)
+            public override void OnGui(Rect rect, bool isModifierKeyPressed)
             {
                 var content = new GUIContent(target.CompareTag("Untagged") ? string.Empty : target.tag, target.tag);
                 EditorGUI.LabelField(rect, content, Style.defaultAlignTextStyle);
@@ -130,7 +137,7 @@ namespace Toolbox.Editor.Hierarchy
 
         private class HierarchyLayerLabel : HierarchyPropertyLabel
         {
-            public override void OnGui(Rect rect)
+            public override void OnGui(Rect rect, bool isModifierKeyPressed)
             {
                 var layerMask = target.layer;
                 var layerName = LayerMask.LayerToName(layerMask);
@@ -183,11 +190,8 @@ namespace Toolbox.Editor.Hierarchy
 
             public override float GetWidth() => summWidth;
 
-            public static readonly Dictionary<Component, Rect> ComponentToRect = new();
-            private static Rect _drawRect;
-            private static double _drawTime;
-
-            public override void OnGui(Rect rect)
+            private static Component _hoveredComponent = null;
+            public override void OnGui(Rect rect, bool isModifierKeyPressed)
             {
                 rect.xMin = rect.xMax - baseWidth;
 
@@ -202,7 +206,6 @@ namespace Toolbox.Editor.Hierarchy
                 for (var i = cachedComponents.Count - 1; i >= 0; i--)
                 {
                     var component = cachedComponents[i];
-                    ComponentToRect.TryAdd(component, currentIconRect);
 
                     var iconTexture = EditorGUIUtility.ObjectContent(component, component.GetType()).image;
                     if (iconTexture == null) iconTexture = componentIcon;
@@ -221,54 +224,52 @@ namespace Toolbox.Editor.Hierarchy
 
                     Color original = GUI.color;
                     var isComponentHovered = currentIconRect.Contains(Event.current.mousePosition);
-                    if (isComponentHovered)
-                    {
-                        _drawRect = new Rect(currentIconRect.x, currentIconRect.y, 3, 90);
-                        _drawTime = EditorApplication.timeSinceStartup;
-                    }
-
                     GUI.color = GUI.color.WithAlpha(isComponentHovered ? 1f : 0.4f);
                     GUI.Label(currentIconRect, new GUIContent(iconTexture));
                     GUI.color = original;
 
+                    if (!isModifierKeyPressed) _hoveredComponent = null;
+                    else if (isComponentHovered && _hoveredComponent != component)
+                    {
+                        SelectComponentAndCollapseOthers(cachedComponents, component);
+                        SelectionHistoryData.SkipNextSelectionChangedHistory(component);
+                        _hoveredComponent = component;
+                    }
+
                     var centreAlignTextStyle = Style.centreAlignTextStyle;
                     centreAlignTextStyle.fontStyle = FontStyle.Bold;
+
                     if (GUI.Button(currentIconRect, new GUIContent { text = text, tooltip = tooltip }, centreAlignTextStyle))
                     {
-                        SelectComponentAndCollapseOthers(component);
+                        SelectComponentAndCollapseOthers(cachedComponents, component);
                     }
 
                     //adjust rect for the next script icon
                     currentIconRect.x += baseWidth;
-
-                    if (EditorApplication.timeSinceStartup - _drawTime < 0.05)
-                    {
-                        // use Graphics.DrawTexture to draw a texture in teh window
-                        Graphics.DrawTexture(new Rect(100,100, 100, 100), EditorGUIUtility.whiteTexture);
-
-                        EditorGUI.DrawRect(_drawRect, Color.red);
-                    }
                 }
             }
         }
 
-        private void SelectComponentAndCollapseOthers(Object selectedComponent)
+        /// <summary>
+        /// Need to use EditorApplication.delayCall to change Selection.activeObject, otherwise it'll interrupt the OnGUI flow
+        /// </summary>
+        /// <param name="cachedComponents"></param>
+        /// <param name="selectedComponent"></param>
+        private void SelectComponentAndCollapseOthers(List<Component> cachedComponents, Component selectedComponent)
         {
-            Debug.Log(selectedComponent);
-            Selection.activeObject = selectedComponent;
-
-            ActiveEditorTracker.sharedTracker.ForceRebuild();
-            EditorWindow inspectorWindow = EditorWindow.GetWindow(typeof(UnityEditor.Editor).Assembly.GetType("UnityEditor.InspectorWindow"));
-            ActiveEditorTracker.sharedTracker.ForceRebuild();
-
-            UnityEditor.Editor[] editors = ActiveEditorTracker.sharedTracker.activeEditors;
-            foreach (var editor in editors)
+            var cachedComponentsCopy = cachedComponents.ToList();
+            EditorApplication.delayCall += () =>
             {
-                if (editor.GetType().Name == "TransformEditor") continue;
-                InternalEditorUtility.SetIsInspectorExpanded(editor.target, editor.target == selectedComponent);
-            }
+                Selection.activeObject = selectedComponent;
 
-            inspectorWindow.Repaint();
+                // SetIsInspectorExpanded will apply itself to _all_ instances of a component type on a GameObject :(
+                foreach (var component in cachedComponentsCopy) InternalEditorUtility.SetIsInspectorExpanded(component, false);
+                InternalEditorUtility.SetIsInspectorExpanded(selectedComponent, true);
+
+                var inspectorWindow = WindowUtility.GetInspectorWindow();
+                ActiveEditorTracker.sharedTracker.ForceRebuild();
+                inspectorWindow.Repaint();
+            };
         }
 
         #endregion

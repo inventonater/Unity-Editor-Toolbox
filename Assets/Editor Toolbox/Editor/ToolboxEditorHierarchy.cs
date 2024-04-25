@@ -62,7 +62,7 @@ namespace Toolbox.Editor
                         DrawHeaderItemLabel(rect, gameObject, label);
                         break;
                     case LabelType.Default:
-                        DrawDefaultItemLabel(rect, gameObject, label);
+                        DrawDefaultItemLabel(rect, gameObject, label, Event.current.control);
                         break;
                 }
             }
@@ -129,7 +129,7 @@ namespace Toolbox.Editor
         /// <summary>
         /// Creates separation lines and content based on the <see cref="allowedDrawContentCallbacks"/> collection.
         /// </summary>
-        private static void DrawDefaultItemLabel(Rect rect, GameObject gameObject, string label)
+        private static void DrawDefaultItemLabel(Rect rect, GameObject gameObject, string label, bool modifierIsHeld)
         {
             var contentRect = rect;
             var labelsCount = propertyLabels.Count;
@@ -142,7 +142,7 @@ namespace Toolbox.Editor
                 {
                     //each property label has to be created in validated (adjusted) area 
                     //depending on previously occupied rect we have to adjust current rect
-                    contentRect = AppendPropertyLabel(propertyLabels[i], gameObject, availableRect);
+                    contentRect = AppendPropertyLabel(propertyLabels[i], gameObject, availableRect, modifierIsHeld);
                     availableRect.xMax -= contentRect.width;
 
                     EditorGUI.DrawRect(new Rect(contentRect.xMin, rect.y, Style.lineWidth, rect.height), Style.lineColor);
@@ -165,7 +165,7 @@ namespace Toolbox.Editor
         }
 
 
-        private static Rect AppendPropertyLabel(HierarchyPropertyLabel propertyLabel, GameObject target, Rect availableRect)
+        private static Rect AppendPropertyLabel(HierarchyPropertyLabel propertyLabel, GameObject target, Rect availableRect, bool modifierIsHeld)
         {
             //prepare currently used property label
             if (propertyLabel.Prepare(target, availableRect, out var width))
@@ -177,7 +177,7 @@ namespace Toolbox.Editor
                     Style.backgroundStyle.Draw(availableRect, false, false, false, false);
                 }
 
-                propertyLabel.OnGui(availableRect);
+                propertyLabel.OnGui(availableRect, modifierIsHeld);
             }
 
             return availableRect;
