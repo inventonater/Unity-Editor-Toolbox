@@ -85,7 +85,6 @@ namespace Toolbox
             return rect;
         }
 
-
         public static Rect WithXMin(this Rect rect, float xMin) => new(xMin, rect.yMin, rect.width, rect.height);
         public static Rect WithYMin(this Rect rect, float yMin) => new(rect.xMin, yMin, rect.width, rect.height);
         public static Rect WithWidth(this Rect rect, float width) => new(rect.xMin, rect.yMin, width, rect.height);

@@ -1,7 +1,6 @@
 MIT License
 
 Copyright (c) 2023 adamgryu
-
 Copyright (c) Meta Platforms, Inc. and affiliates.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
