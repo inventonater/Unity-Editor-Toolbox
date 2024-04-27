@@ -69,9 +69,8 @@ namespace Toolbox.Editor.Hierarchy
 
         private static void DrawDescendantCount(Rect rect, Transform targetTransform)
         {
-
             var childCount = targetTransform.childCount;
-            var descendantCount = targetTransform.DescendantCount();
+            var descendantCount = targetTransform.GetDescendantCount();
             var tooltip = $"{childCount} children, {descendantCount} descendants";
             var content = new GUIContent(descendantCount.ToString(), tooltip);
             EditorGUI.LabelField(rect, content, Style.defaultAlignTextStyle);
@@ -215,7 +214,7 @@ namespace Toolbox.Editor.Hierarchy
 
                     if (component is Transform t)
                     {
-                        var descendantCount = t.DescendantCount();
+                        var descendantCount = t.GetDescendantCount();
                         text = descendantCount.ToString();
                         tooltip = $"{t.childCount} children, {descendantCount} descendants";
                     }
