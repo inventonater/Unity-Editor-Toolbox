@@ -1,11 +1,32 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Toolbox
 {
     public static class EnsureIn
     {
+        private static readonly Dictionary<RelationFlags, Func<Component, Type, Component>> SearchFunctions = new Dictionary<RelationFlags, Func<Component, Type, Component>>
+        {
+            { RelationFlags.Sibling, (searcher, type) => searcher.GetComponent(type) },
+            { RelationFlags.Parent, (searcher, type) => searcher.transform.parent.GetComponent(type) },
+            { RelationFlags.Child, (searcher, type) => GetChildComponent(searcher, type) },
+            { RelationFlags.Ancestor, (searcher, type) => searcher.GetComponentInParent(type) },
+            { RelationFlags.Descendant, (searcher, type) => searcher.GetComponentInChildren(type, true) }
+        };
+
+        private static Component GetChildComponent(Component searcher, Type type)
+        {
+            for (int i = 0; i < searcher.transform.childCount; i++)
+            {
+                var child = searcher.transform.GetChild(i);
+                var component = child.GetComponent(type);
+                if (component != null) return component;
+            }
+            return null;
+        }
+
         public static T Ensure<T>(this Component searcher, ref T field, Relation relation = Relation.Sibling, RelationFlags searchFlags = RelationFlags.None, Type defaultType = null) where T : Component
         {
             if (field != null) return field;
@@ -17,32 +38,32 @@ namespace Toolbox
         {
             if (searcher == null)
             {
-                Debug.LogError($"Ensure<{typeof(T)}> called with null searcher");
-                return null;
+                throw new ArgumentNullException(nameof(searcher), $"Ensure<{typeof(T)}> called with null searcher");
             }
 
             if (searchFlags.IsNone()) searchFlags = relation.ToFlags();
 
+            T result = Search<T>(searcher, searchFlags);
+            if (result != null) return result;
+
+            return TryCreate<T>(searcher, relation, defaultType, out result) ? result : null;
+        }
+
+        public static IEnumerator WaitForDependency<T>(Component searcher, RelationFlags search, float timeout = 10f) where T : Component
+        {
+            float startTime = Time.time;
             T result = null;
-            if (searcher.TrySearch(searchFlags, out result)) return result;
-            if (searcher.TryCreate(relation, defaultType, out result)) return result;
-            return result;
-        }
 
-        public class SearchResult<T>
-        {
-            public T Result;
-            public bool HasResult => Result != null;
-        }
-
-        public static IEnumerator WaitForDependency<T>(Component searcher, RelationFlags search, SearchResult<T> result) where T : Component
-        {
-            while (!result.HasResult)
+            while (result == null)
             {
-                searcher.TrySearch(search, out result.Result);
-                if (result.HasResult) yield break;
+                result = Search<T>(searcher, search);
+                if (result != null) yield break;
 
-                // check timeout
+                if (Time.time - startTime > timeout)
+                {
+                    Debug.LogError($"Timed out waiting for dependency of type {typeof(T)}");
+                    yield break;
+                }
 
                 yield return null;
             }
@@ -50,76 +71,39 @@ namespace Toolbox
 
         public static T Search<T>(this Component searcher, RelationFlags search) where T : Component
         {
-            return searcher.TrySearch<T>(search, out var result) ? result : null;
-        }
-
-        public static bool TrySearch<T>(this Component searcher, RelationFlags search, out T result) where T : Component
-        {
-            result = null;
-            if (search.IncludeSibling()) if (searcher.TryGetComponent(out result)) return result;
-            if (search.IncludeParent()) if (searcher.transform.parent.TryGetComponent(out result)) return result;
-            if (search.IncludeChildren())
+            foreach (var flag in EnumUtils.GetFlags(search))
             {
-                var childCount = searcher.transform.childCount;
-                for (int i = 0; i < childCount; ++i)
+                if (SearchFunctions.TryGetValue(flag, out var searchFunction))
                 {
-                    var child = searcher.transform.GetChild(i);
-                    if (child.TryGetComponent(out result)) return result;
+                    var result = searchFunction(searcher, typeof(T)) as T;
+                    if (result != null) return result;
                 }
             }
 
-            if (search.IncludeAncestor())
-            {
-                VerifyNoSibling<T>(searcher, Relation.Ancestor);
-                if (searcher.Ancestor(ref result, optional: true, allowSibling: false, includeInactive: true)) return result;
-            }
-
-            if (search.IncludeDescendant())
-            {
-                VerifyNoSibling<T>(searcher, Relation.Descendant);
-                if (searcher.Descendant(ref result, optional: true, allowSibling: false, includeInactive:true)) return result;
-            }
-
-            return false;
+            return null;
         }
 
-        private static void VerifyNoSibling<T>(Component searcher, Relation relation) where T : Component
+        private static bool TryCreate<T>(Component searcher, Relation relation, Type defaultType, out T result) where T : Component
         {
-            if (!searcher.TryGetComponent(out T sibling)) return;
-            Debug.LogError(Format(searcher.GetType().Name, "Ensure", relation.ToString(), typeof(T).ToString(), "sibling", sibling.GetPath()));
-        }
-
-        private static string Format(string searcherName, string methodName, string relation, string expectedType, string foundType, string foundPath)
-        {
-            return $"<b>{searcherName}</b>.{methodName} expected {relation} <b>{expectedType}</b> but found {foundType} instead {foundPath}";
-        }
-
-        public static bool TryCreate<T>(this Component searcher, Relation relation, Type defaultType, out T result) where T : Component
-        {
-            if (relation.IsChildren() || relation.IsDescendant())
+            Transform host = relation switch
             {
-                result = searcher.CreateChild<T>(defaultType);
-                return result;
-            }
-
-            Transform host = null;
-            if (relation.IsSibling()) host = searcher.transform;
-            if (relation.IsParent()) host = searcher.transform.parent;
-            if (relation.IsAncestor()) host = searcher.transform.root;
-            if (relation.IsScene()) host = null;
-            if (relation.IsNone()) host = null;
+                Relation.Child => searcher.transform,
+                Relation.Descendant => searcher.transform,
+                Relation.Sibling => searcher.transform,
+                Relation.Parent => searcher.transform.parent,
+                Relation.Ancestor => searcher.transform.root,
+                _ => null
+            };
 
             if (host == null)
             {
                 result = searcher.CreateChild<T>(defaultType);
-                result.transform.parent = null;
-                return result;
+                result.transform.SetParent(null);
+                return true;
             }
 
-            if (defaultType != null) result = host.gameObject.AddComponent(defaultType) as T;
-            else result = host.gameObject.AddComponent<T>();
-
-            return result;
+            result = defaultType != null ? host.gameObject.AddComponent(defaultType) as T : host.gameObject.AddComponent<T>();
+            return true;
         }
     }
 }

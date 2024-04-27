@@ -9,6 +9,6 @@ public class MyImpl : IMyInterface
     public void Update()
     {
         _yo++;
-
+        _hi++; 
     }
 }
