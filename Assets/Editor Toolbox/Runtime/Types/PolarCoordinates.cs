@@ -237,5 +237,120 @@ namespace Toolbox
             float angle = Mathf.Atan2(vector.y, vector.x);
             return new PolarCoordinates(radius, angle);
         }
+
+
+        /// <summary>
+        /// Determines whether the specified object is equal to the current PolarCoordinates.
+        /// </summary>
+        /// <param name="obj">The object to compare with the current PolarCoordinates.</param>
+        /// <returns>true if the specified object is equal to the current PolarCoordinates; otherwise, false.</returns>
+        public override bool Equals(object obj)
+        {
+            if (obj is PolarCoordinates other)
+                return Equals(other);
+            return false;
+        }
+
+        /// <summary>
+        /// Determines whether the specified PolarCoordinates is equal to the current PolarCoordinates.
+        /// </summary>
+        /// <param name="other">The PolarCoordinates to compare with the current PolarCoordinates.</param>
+        /// <returns>true if the specified PolarCoordinates is equal to the current PolarCoordinates; otherwise, false.</returns>
+        public bool Equals(PolarCoordinates other)
+        {
+            return Radius == other.Radius && AngleRadians == other.AngleRadians;
+        }
+
+        /// <summary>
+        /// Determines whether the current PolarCoordinates is approximately equal to another PolarCoordinates within a specified tolerance.
+        /// </summary>
+        /// <param name="other">The PolarCoordinates to compare with the current PolarCoordinates.</param>
+        /// <param name="tolerance">The maximum allowed difference between the coordinates.</param>
+        /// <returns>true if the current PolarCoordinates is approximately equal to the other PolarCoordinates; otherwise, false.</returns>
+        public bool ApproximatelyEquals(PolarCoordinates other, float tolerance = 1e-6f)
+        {
+            return Mathf.Abs(Radius - other.Radius) < tolerance &&
+                   Mathf.Abs(Mathf.DeltaAngle(AngleRadians, other.AngleRadians)) < tolerance;
+        }
+
+        /// <summary>
+        /// Returns the hash code for this PolarCoordinates.
+        /// </summary>
+        /// <returns>A hash code for the current PolarCoordinates.</returns>
+        public override int GetHashCode()
+        {
+            return Radius.GetHashCode() ^ AngleRadians.GetHashCode();
+        }
+
+        /// <summary>
+        /// Determines whether two PolarCoordinates instances are equal.
+        /// </summary>
+        /// <param name="a">The first PolarCoordinates to compare.</param>
+        /// <param name="b">The second PolarCoordinates to compare.</param>
+        /// <returns>true if the specified PolarCoordinates are equal; otherwise, false.</returns>
+        public static bool operator ==(PolarCoordinates a, PolarCoordinates b)
+        {
+            return a.Equals(b);
+        }
+
+        /// <summary>
+        /// Determines whether two PolarCoordinates instances are not equal.
+        /// </summary>
+        /// <param name="a">The first PolarCoordinates to compare.</param>
+        /// <param name="b">The second PolarCoordinates to compare.</param>
+        /// <returns>true if the specified PolarCoordinates are not equal; otherwise, false.</returns>
+        public static bool operator !=(PolarCoordinates a, PolarCoordinates b)
+        {
+            return !a.Equals(b);
+        }
+
+        /// <summary>
+        /// Returns a new instance of the PolarCoordinates struct with the negated radius.
+        /// </summary>
+        /// <returns>A new PolarCoordinates struct with the negated radius.</returns>
+        public PolarCoordinates Negate()
+        {
+            return new PolarCoordinates(-Radius, AngleRadians);
+        }
+
+        /// <summary>
+        /// Returns a new instance of the PolarCoordinates struct with the absolute value of the radius.
+        /// </summary>
+        /// <returns>A new PolarCoordinates struct with the absolute value of the radius.</returns>
+        public PolarCoordinates Abs()
+        {
+            return new PolarCoordinates(Mathf.Abs(Radius), AngleRadians);
+        }
+
+        /// <summary>
+        /// Converts the polar coordinates to a Vector3 with the specified height (y-coordinate).
+        /// </summary>
+        /// <param name="height">The height (y-coordinate) of the resulting Vector3.</param>
+        /// <returns>A Vector3 representing the polar coordinates with the specified height.</returns>
+        public Vector3 ToVector3(float height)
+        {
+            Vector2 vector2 = ToVector2();
+            return new Vector3(vector2.x, height, vector2.y);
+        }
+
+        /// <summary>
+        /// Calculates the distance between two polar coordinates.
+        /// </summary>
+        /// <param name="other">The other polar coordinates to calculate the distance to.</param>
+        /// <returns>The distance between the current and other polar coordinates.</returns>
+        public float Distance(PolarCoordinates other)
+        {
+            return (ToVector2() - other.ToVector2()).magnitude;
+        }
+
+        /// <summary>
+        /// Calculates the angle between two polar coordinates in radians.
+        /// </summary>
+        /// <param name="other">The other polar coordinates to calculate the angle to.</param>
+        /// <returns>The angle between the current and other polar coordinates in radians.</returns>
+        public float AngleTo(PolarCoordinates other)
+        {
+            return Mathf.DeltaAngle(AngleRadians, other.AngleRadians);
+        }
     }
 }

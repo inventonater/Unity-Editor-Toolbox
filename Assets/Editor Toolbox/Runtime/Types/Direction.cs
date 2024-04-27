@@ -104,5 +104,113 @@ namespace Toolbox
         /// </summary>
         /// <returns>A string representing the internal state of the Direction.</returns>
         public override string ToString() => $"Direction: {_direction}, Rotation: {_rotation.eulerAngles}";
+
+
+        /// <summary>
+        /// Rotates the direction around the X-axis by the specified angle.
+        /// </summary>
+        /// <param name="angle">The angle in degrees to rotate around the X-axis.</param>
+        /// <returns>A new Direction that is the result of the rotation.</returns>
+        public Direction RotateX(float angle) => AxisAngle(angle, Vector3.right);
+
+        /// <summary>
+        /// Rotates the direction around the Y-axis by the specified angle.
+        /// </summary>
+        /// <param name="angle">The angle in degrees to rotate around the Y-axis.</param>
+        /// <returns>A new Direction that is the result of the rotation.</returns>
+        public Direction RotateY(float angle) => AxisAngle(angle, Vector3.up);
+
+        /// <summary>
+        /// Rotates the direction around the Z-axis by the specified angle.
+        /// </summary>
+        /// <param name="angle">The angle in degrees to rotate around the Z-axis.</param>
+        /// <returns>A new Direction that is the result of the rotation.</returns>
+        public Direction RotateZ(float angle) => AxisAngle(angle, Vector3.forward);
+
+        /// <summary>
+        /// Rotates the direction by the specified Euler angles.
+        /// </summary>
+        /// <param name="euler">The Euler angles to rotate by.</param>
+        /// <returns>A new Direction that is the result of the rotation.</returns>
+        public Direction RotateEuler(Vector3 euler) => new Direction(Quaternion.Euler(euler) * _rotation);
+
+        // Equality comparison
+
+        /// <summary>
+        /// Determines whether the specified object is equal to the current Direction.
+        /// </summary>
+        /// <param name="obj">The object to compare with the current Direction.</param>
+        /// <returns>true if the specified object is equal to the current Direction; otherwise, false.</returns>
+        public override bool Equals(object obj)
+        {
+            if (obj is Direction other)
+                return Equals(other);
+            return false;
+        }
+
+        /// <summary>
+        /// Determines whether the specified Direction is equal to the current Direction.
+        /// </summary>
+        /// <param name="other">The Direction to compare with the current Direction.</param>
+        /// <returns>true if the specified Direction is equal to the current Direction; otherwise, false.</returns>
+        public bool Equals(Direction other)
+        {
+            return _direction == other._direction && _rotation == other._rotation;
+        }
+
+        /// <summary>
+        /// Returns the hash code for this Direction.
+        /// </summary>
+        /// <returns>A hash code for the current Direction.</returns>
+        public override int GetHashCode()
+        {
+            return _direction.GetHashCode() ^ _rotation.GetHashCode();
+        }
+
+        /// <summary>
+        /// Determines whether two Direction instances are equal.
+        /// </summary>
+        /// <param name="a">The first Direction to compare.</param>
+        /// <param name="b">The second Direction to compare.</param>
+        /// <returns>true if the specified Directions are equal; otherwise, false.</returns>
+        public static bool operator ==(Direction a, Direction b)
+        {
+            return a.Equals(b);
+        }
+
+        /// <summary>
+        /// Determines whether two Direction instances are not equal.
+        /// </summary>
+        /// <param name="a">The first Direction to compare.</param>
+        /// <param name="b">The second Direction to compare.</param>
+        /// <returns>true if the specified Directions are not equal; otherwise, false.</returns>
+        public static bool operator !=(Direction a, Direction b)
+        {
+            return !a.Equals(b);
+        }
+
+        /// <summary>
+        /// Determines whether the current Direction is approximately equal to another Direction within a specified tolerance.
+        /// </summary>
+        /// <param name="other">The Direction to compare with the current Direction.</param>
+        /// <param name="tolerance">The maximum allowed difference between the directions.</param>
+        /// <returns>true if the current Direction is approximately equal to the other Direction; otherwise, false.</returns>
+        public bool ApproximatelyEquals(Direction other, float tolerance = 1e-6f)
+        {
+            return Vector3.Dot(_direction, other._direction) > 1f - tolerance &&
+                   Quaternion.Angle(_rotation, other._rotation) < tolerance * Mathf.Rad2Deg;
+        }
+
+        /// <summary>
+        /// Determines whether two Direction instances are approximately equal within a specified tolerance.
+        /// </summary>
+        /// <param name="a">The first Direction to compare.</param>
+        /// <param name="b">The second Direction to compare.</param>
+        /// <param name="tolerance">The maximum allowed difference between the directions.</param>
+        /// <returns>true if the specified Directions are approximately equal; otherwise, false.</returns>
+        public static bool ApproximatelyEqual(Direction a, Direction b, float tolerance = 1e-6f)
+        {
+            return a.ApproximatelyEquals(b, tolerance);
+        }
     }
 }
