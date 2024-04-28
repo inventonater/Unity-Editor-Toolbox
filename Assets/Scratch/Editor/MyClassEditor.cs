@@ -116,9 +116,10 @@ public class MyClassEditor : ToolboxEditor
             }
             else if (field.FieldType == typeof(LayerMask))
             {
-                LayerMask layerMaskValue = (LayerMask)value;
-                layerMaskValue = EditorGUILayout.LayerField(fieldName, layerMaskValue);
-                field.SetValue(myClass, layerMaskValue);
+                // need to allow for LayerMask flags
+                // LayerMask layerMaskValue = (LayerMask)value;
+                // layerMaskValue = EditorGUILayout.LayerField(fieldName, layerMaskValue);
+                // field.SetValue(myClass, layerMaskValue);
             }
             else if (field.FieldType == typeof(Gradient))
             {
