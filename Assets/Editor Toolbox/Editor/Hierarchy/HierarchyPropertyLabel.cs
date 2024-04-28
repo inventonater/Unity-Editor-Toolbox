@@ -171,6 +171,13 @@ namespace Toolbox.Editor.Hierarchy
             /// </summary>
             private List<Component> cachedComponents = new();
 
+            [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
+            private static void Initialize()
+            {
+                componentIcon = null;
+                transformIcon = null;
+            }
+
             public override bool Prepare(GameObject target, Rect availableRect)
             {
                 var isValid = base.Prepare(target, availableRect);
@@ -201,10 +208,12 @@ namespace Toolbox.Editor.Hierarchy
                 currentIconRect.xMin = rect.xMin;
                 currentIconRect.xMax = rect.xMin + baseWidth;
 
-                //draw all icons associated to cached components (except transform)
+                //draw all icons associated to cached components
                 for (var i = cachedComponents.Count - 1; i >= 0; i--)
                 {
                     var component = cachedComponents[i];
+
+                    if(component == null) continue;
 
                     var iconTexture = EditorGUIUtility.ObjectContent(component, component.GetType()).image;
                     if (iconTexture == null) iconTexture = componentIcon;
