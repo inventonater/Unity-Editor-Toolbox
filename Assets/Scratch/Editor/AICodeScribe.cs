@@ -9,7 +9,7 @@ public class AICodeScribe : EditorWindow
 {
     const string ToolName = nameof(AICodeScribe);
 
-    string customPrompt = "Enter your prompt here..." ;
+    string customPrompt = "Enter your prompt here...";
     bool includeFileDetails = true;
     bool includeSeparators = true;
     bool includeProjectMetadata = true;
@@ -38,7 +38,7 @@ public class AICodeScribe : EditorWindow
     public static void ShowWindow()
     {
         var window = GetWindow<AICodeScribe>(ToolName);
-        window.minSize = new Vector2(340, 360);
+        window.minSize = new Vector2(340, 320);
     }
 
     void OnEnable()
@@ -51,6 +51,7 @@ public class AICodeScribe : EditorWindow
     {
         Selection.selectionChanged -= UpdateSelectedItemsInfo;
     }
+
     void UpdateSelectedItemsInfo()
     {
         selectedPaths.Clear();
@@ -108,7 +109,6 @@ public class AICodeScribe : EditorWindow
 
     void OnGUI()
     {
-
         using (new EditorGUILayout.VerticalScope(GUI.skin.box))
         {
             using (new EditorGUILayout.HorizontalScope())
@@ -134,11 +134,15 @@ public class AICodeScribe : EditorWindow
             }
         }
 
-        EditorGUILayout.Space();
+        EditorGUI.BeginChangeCheck();
 
-        scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition, GUILayout.Height(100));
-        customPrompt = EditorGUILayout.TextArea(customPrompt, GUILayout.ExpandHeight(true));
-        EditorGUILayout.EndScrollView();
+        using (new EditorGUILayout.VerticalScope(GUI.skin.box))
+        {
+            GUIStyle textAreaStyle = new GUIStyle(GUI.skin.textArea) { wordWrap = true };
+            scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
+            customPrompt = EditorGUILayout.TextArea(customPrompt, textAreaStyle, GUILayout.ExpandHeight(true));
+            EditorGUILayout.EndScrollView();
+        }
 
         using (new EditorGUILayout.VerticalScope(GUI.skin.box))
         {
@@ -148,8 +152,6 @@ public class AICodeScribe : EditorWindow
             EditorGUILayout.LabelField($"{cachedFileContentCharacterCount} characters cached from selected files");
             EditorGUILayout.LabelField($"Character Count Total: {AppendPromptAndRequestType().Length + cachedFileContentCharacterCount}", EditorStyles.boldLabel);
         }
-
-        EditorGUI.BeginChangeCheck();
 
         using (new EditorGUILayout.VerticalScope(GUI.skin.box))
         {
