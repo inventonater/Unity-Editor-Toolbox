@@ -13,7 +13,7 @@ public class AICodeScribe : EditorWindow
     bool includeFileDetails = true;
     bool includeSeparators = true;
     bool includeProjectMetadata = true;
-    RequestType requestType = RequestType.RequestDocumentation;
+    RequestType requestType = RequestType.NotSpecified;
     bool showHowToUse = false;
 
     Vector2 scrollPosition;
@@ -191,7 +191,7 @@ public class AICodeScribe : EditorWindow
 
     string AppendPromptAndRequestType()
     {
-        return $"{customPrompt}\n{GetRequestTypeMessage()}";
+        return $"{customPrompt}\n\n{GetRequestTypeMessage()}\n\n";
     }
 
     void AppendSelectedFileContents(StringBuilder builder)
