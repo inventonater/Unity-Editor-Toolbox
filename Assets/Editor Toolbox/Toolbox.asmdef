@@ -1,12 +1,16 @@
 {
     "name": "Toolbox",
-    "references": [],
+    "references": [
+      "R3.Unity"
+    ],
     "optionalUnityReferences": [],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,
-    "precompiledReferences": [],
+    "precompiledReferences": [
+      "R3.dll"
+    ],
     "autoReferenced": true,
     "defineConstraints": []
 }

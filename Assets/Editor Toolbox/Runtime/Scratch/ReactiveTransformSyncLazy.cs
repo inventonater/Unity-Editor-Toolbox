@@ -5,24 +5,6 @@ using R3;
 using UnityEditor;
 using UnityEngine;
 
-public static class MyExtensions
-{
-    public static IDisposable Subscribe<T>(this Component component, ReactiveProperty<T> property, Action<T> action)
-    {
-        return property.Subscribe(action).AddTo(component);
-    }
-
-    public static void Bind<TProperty>(this Component component, Func<Component, TProperty> get, Action<TProperty> set, ReactiveProperty<TProperty> property)
-    {
-        Observable.EveryValueChanged(component, get)
-            .DistinctUntilChanged()
-            .Subscribe(value => property.Value = value)
-            .AddTo(component);
-        component.Subscribe(property, set);
-    }
-}
-
-
 [Serializable]
 public class ReactivePropertySynchronizer<T> : SerializableReactiveProperty<T>, IDisposable
 {
