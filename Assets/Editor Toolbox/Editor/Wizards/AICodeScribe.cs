@@ -14,7 +14,7 @@ public class AICodeScribe : EditorWindow
     string customPrompt = "Enter your prompt here...";
     bool includeFileDetails = true;
     bool includeProjectMetadata = true;
-    RequestType requestType = RequestType.NotSpecified;
+    PromptTemplate _promptTemplate = PromptTemplate.None;
     bool showHowToUse = false;
 
     Vector2 scrollPosition;
@@ -30,22 +30,15 @@ public class AICodeScribe : EditorWindow
     private int _cachedFileContentCharacterCount;
     private int _projectMetadataCharacterCount;
 
-    public enum RequestType
+    public enum PromptTemplate
     {
-        [EnumMember(Value = "Not Specified")]
-        NotSpecified,
-
-        [EnumMember(Value = "Documentation")]
-        RequestDocumentation,
-
-        [EnumMember(Value = "Fixes")]
-        RequestFixes,
-
-        [EnumMember(Value = "Additional Functions")]
-        RequestAdditionalFunctions,
-
-        [EnumMember(Value = "Code Review")]
-        RequestCodeReview
+        None,
+        Explain,
+        Fixes,
+        AdditionalFunctions,
+        Documentation,
+        CodeReview,
+        Performance,
     }
 
     [MenuItem("Tools/" + ToolName)]
@@ -194,7 +187,7 @@ public class AICodeScribe : EditorWindow
 
         includeFileDetails = EditorGUILayout.Toggle(new GUIContent("Include File Details", "Include file details such as filename, path, and size"), includeFileDetails);
         includeProjectMetadata = EditorGUILayout.Toggle(new GUIContent("Include Project Metadata", "Include project metadata in the copied content"), includeProjectMetadata);
-        requestType = (RequestType)EditorGUILayout.EnumPopup(new GUIContent("Request Type", "Select the type of request to include in the prompt"), requestType);
+        _promptTemplate = (PromptTemplate)EditorGUILayout.EnumPopup(new GUIContent("Request Type", "Select the type of request to include in the prompt"), _promptTemplate);
 
         if(changeScope.changed)
         {
@@ -313,18 +306,15 @@ public class AICodeScribe : EditorWindow
 
     string GetRequestTypeMessage()
     {
-        switch (requestType)
+        return _promptTemplate switch
         {
-            case RequestType.RequestDocumentation:
-                return "Please provide documentation for the following code snippets:";
-            case RequestType.RequestFixes:
-                return "Please provide fixes for the following code snippets:";
-            case RequestType.RequestAdditionalFunctions:
-                return "Please provide additional functions for the following code snippets:";
-            case RequestType.RequestCodeReview:
-                return "Please review the following code snippets:";
-            default:
-                return "";
-        }
+            PromptTemplate.Explain => "Explain this code.  Tell me what it does and provide an explanation for any parts which might not be obvious to a junior developer.  If there are any missing implementation details which would be useful for you to see, tell me what those are.",
+            PromptTemplate.Fixes => "Identify any potential bugs or issues with this code.  Explain potential fixes and show me the implementation.",
+            PromptTemplate.AdditionalFunctions => "Take a look at this code and suggest a bunch of new functions or capabilities which might make it more robust.  If there are any issues with the code, tell me about that first.  Show me the implementation.",
+            PromptTemplate.Documentation => "Write documentation this code following C# best practices.  Make it easy for me to copy and paste into the source code.",
+            PromptTemplate.CodeReview => "Analyze this code and give me a general code review.  Help me understand where things can be improved and extended.",
+            PromptTemplate.Performance => "Is this code performant for a low-compute device from Unity builds?  Are there any issues I can fix or areas that I can make improvements so that it runs efficiently and without excessive garbage collection?",
+            _ => string.Empty
+        };
     }
 }
