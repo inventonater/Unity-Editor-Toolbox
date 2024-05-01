@@ -284,6 +284,8 @@ namespace Toolbox
             return result.ToString();
         }
 
+        public static string GetPath(this GameObject go) => go.transform.GetPath();
+
         public static string GetPath(this Component c)
         {
             if (c == null) return string.Empty;
