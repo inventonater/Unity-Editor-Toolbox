@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 79ca0b3b59a54e22b082eedaa816c526, type: 3}
+  m_Name: ReadMe
+  m_EditorClassIdentifier: 
+  text: 'Help me write a README.md for these files.  Include a lot of detail and
+    specificity.
+
+    It should use neutral language, be a thorough and useful introduction
+    to the classes,  methods, and fields.  Describe their purpose and briefly describe
+    the way they work.
+
+    Make sure to cover any features or patterns which might
+    be unusual, unintuitive, or unfamiliar to junior Unity developers.  Use best
+    practices for the markdown, including relative links to the local files for the
+    major sections.'
+  options:
+    filePathDetails: 1
+    stripComments: 1
+    includeMarkDownFiles: 0
+    projectMetadata: 0
+    selectedGameObjects: 0
+    summarizeHierarchy: 0

@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 79ca0b3b59a54e22b082eedaa816c526, type: 3}
+  m_Name: Performance
+  m_EditorClassIdentifier: 
+  text: Is this code performant for a low-compute device from Unity builds?  Are
+    there any issues I can fix or areas that I can make improvements so that it runs
+    efficiently and without excessive garbage collection?
+  options:
+    filePathDetails: 1
+    stripComments: 1
+    includeMarkDownFiles: 0
+    projectMetadata: 0
+    selectedGameObjects: 0
+    summarizeHierarchy: 0
