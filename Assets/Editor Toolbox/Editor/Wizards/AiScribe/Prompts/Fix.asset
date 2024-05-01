@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 79ca0b3b59a54e22b082eedaa816c526, type: 3}
+  m_Name: Fix
+  m_EditorClassIdentifier: 
+  title: Fix
+  text: "This code isn't working as intended.  Help me fix it and show me the details
+    of the implementation.  Tell me what might be causing unintended behavior and
+    make a brief commentary on it's performance characteristics given that we are
+    building for low-compute devices.  If there are any other classes or functions
+    which would help you give a full explination, tell me what those are.\r"
+  options:
+    filePathDetails: 1
+    stripComments: 0
+    includeMarkDownFiles: 0
+    projectMetadata: 0
+    selectedGameObjects: 1
+    summarizeHierarchy: 0
