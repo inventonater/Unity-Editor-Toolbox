@@ -7,7 +7,7 @@ namespace Toolbox
 {
     public static class EnsureIn
     {
-        private static readonly Dictionary<RelationFlags, Func<Component, Type, Component>> SearchFunctions = new Dictionary<RelationFlags, Func<Component, Type, Component>>
+        private static readonly Dictionary<RelationFlags, Func<Component, Type, Component>> SearchFunctions = new()
         {
             { RelationFlags.Sibling, (searcher, type) => searcher.GetComponent(type) },
             { RelationFlags.Parent, (searcher, type) => searcher.transform.parent.GetComponent(type) },
@@ -71,13 +71,12 @@ namespace Toolbox
 
         public static T Search<T>(this Component searcher, RelationFlags search) where T : Component
         {
-            foreach (var flag in EnumUtils.GetFlags(search))
+            foreach (var flag in search.GetFlags())
             {
-                if (SearchFunctions.TryGetValue(flag, out var searchFunction))
-                {
-                    var result = searchFunction(searcher, typeof(T)) as T;
-                    if (result != null) return result;
-                }
+                if (!SearchFunctions.TryGetValue(flag, out var searchFunction)) continue;
+
+                var result = searchFunction(searcher, typeof(T)) as T;
+                if (result != null) return result;
             }
 
             return null;

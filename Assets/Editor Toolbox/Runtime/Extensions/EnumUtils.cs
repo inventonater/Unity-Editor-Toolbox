@@ -6,9 +6,35 @@ using System.Runtime.CompilerServices;
 
 namespace Toolbox
 {
+    /// <summary>
+    /// Provides utility methods for working with enums.
+    /// </summary>
     public static class EnumUtils
     {
+        /// <summary>
+        /// Converts an enumeration value to an unsigned long integer (ulong).
+        /// </summary>
+        /// <typeparam name="T">The type of the enumeration.</typeparam>
+        /// <param name="enumValue">The enumeration value to convert.</param>
+        /// <returns>The enumeration value as an unsigned long integer.</returns>
+        private static ulong ToUInt64<T>(this T enumValue) where T : struct, Enum
+        {
+            return Convert.ToUInt64(enumValue);
+        }
+
+        /// <summary>
+        /// Converts a 64-bit unsigned integer to an enum value of type T.
+        /// </summary>
+        /// <typeparam name="T">The type of the enum.</typeparam>
+        /// <param name="value">The 64-bit unsigned integer value to convert.</param>
+        /// <returns>The enum value corresponding to the unsigned integer value.</returns>
+        public static T FromUInt64<T>(ulong value) where T : struct, Enum
+        {
+            return (T)Enum.ToObject(typeof(T), value);
+        }
+
         // Flag Operations
+        private static readonly Dictionary<Type, IReadOnlyCollection<string>> _enumNamesCache = new Dictionary<Type, IReadOnlyCollection<string>>();
 
         /// <summary>
         /// Gets the flags contained in the specified enumeration value.
@@ -16,12 +42,20 @@ namespace Toolbox
         /// <typeparam name="T">The type of the enumeration.</typeparam>
         /// <param name="enumValue">The enumeration value.</param>
         /// <returns>An IEnumerable of type T containing the flags.</returns>
-        public static IEnumerable<T> GetFlags<T>(this T enumValue) where T : Enum
+        public static IEnumerable<T> GetFlags<T>(this T enumValue) where T : struct, Enum
         {
-            foreach (T value in Enum.GetValues(typeof(T)))
+            if (!_enumNamesCache.TryGetValue(typeof(T), out var enumNames))
             {
-                if (enumValue.HasFlag(value))
+                enumNames = Enum.GetNames(typeof(T)).ToList();
+                _enumNamesCache[typeof(T)] = enumNames;
+            }
+
+            foreach (var name in enumNames)
+            {
+                if (Enum.TryParse(name, out T value) && enumValue.HasFlag(value))
+                {
                     yield return value;
+                }
             }
         }
 
@@ -32,9 +66,9 @@ namespace Toolbox
         /// <param name="enumValue">The enum value to check.</param>
         /// <param name="flagsToCheck">The flags to check against the enumValue.</param>
         /// <returns>Returns true if the enumValue has any of the flagsToCheck set; otherwise, false.</returns>
-        public static bool HasAnyFlag<T>(this T enumValue, T flagsToCheck) where T : Enum
+        public static bool HasAnyFlag<T>(this T enumValue, T flagsToCheck) where T : struct, Enum
         {
-            return ((int)(object)enumValue & (int)(object)flagsToCheck) != 0;
+            return (enumValue.ToUInt64() & flagsToCheck.ToUInt64()) != 0;
         }
 
         /// <summary>
@@ -44,19 +78,21 @@ namespace Toolbox
         /// <param name="enumValue">The enum value to check.</param>
         /// <param name="flagsToCheck">The flags to check.</param>
         /// <returns>True if the enum value has all the specified flags set; otherwise, false.</returns>
-        public static bool HasAllFlags<T>(this T enumValue, T flagsToCheck) where T : Enum
+        public static bool HasAllFlags<T>(this T enumValue, T flagsToCheck) where T : struct, Enum
         {
-            return ((int)(object)enumValue & (int)(object)flagsToCheck) == (int)(object)flagsToCheck;
+            return (enumValue.ToUInt64() & flagsToCheck.ToUInt64()) == flagsToCheck.ToUInt64();
         }
 
+        /// <summary>
         /// Determines whether the specified flag is set in the enum value.
+        /// </summary>
         /// <typeparam name="T">The type of the enum.</typeparam>
         /// <param name="enumValue">The enum value to check.</param>
         /// <param name="flag">The flag to check.</param>
         /// <returns><see langword="true"/> if the flag is set; otherwise, <see langword="false"/>.</returns>
-        public static bool HasFlag<T>(this T enumValue, T flag) where T : Enum
+        public static bool HasFlag<T>(this T enumValue, T flag) where T : struct, Enum
         {
-            return ((int)(object)enumValue & (int)(object)flag) != 0;
+            return (enumValue.ToUInt64() & flag.ToUInt64()) != 0;
         }
 
         /// <summary>
@@ -66,9 +102,9 @@ namespace Toolbox
         /// <param name="enumValue">The enum value to set the flags for.</param>
         /// <param name="flagsToSet">The flags to set on the enum value.</param>
         /// <returns>The enum value with the specified flags set.</returns>
-        public static T SetFlags<T>(this T enumValue, T flagsToSet) where T : Enum
+        public static T SetFlags<T>(this T enumValue, T flagsToSet) where T : struct, Enum
         {
-            return (T)(object)((int)(object)enumValue | (int)(object)flagsToSet);
+            return FromUInt64<T>(enumValue.ToUInt64() | flagsToSet.ToUInt64());
         }
 
         /// <summary>
@@ -78,9 +114,9 @@ namespace Toolbox
         /// <param name="enumValue">The enum value to clear the flags from.</param>
         /// <param name="flagsToClear">The flags to clear.</param>
         /// <returns>The enum value with the specified flags cleared.</returns>
-        public static T ClearFlags<T>(this T enumValue, T flagsToClear) where T : Enum
+        public static T ClearFlags<T>(this T enumValue, T flagsToClear) where T : struct, Enum
         {
-            return (T)(object)((int)(object)enumValue & ~(int)(object)flagsToClear);
+            return FromUInt64<T>(enumValue.ToUInt64() & ~flagsToClear.ToUInt64());
         }
 
         /// <summary>
@@ -90,9 +126,9 @@ namespace Toolbox
         /// <param name="enumValue">The enum value.</param>
         /// <param name="flagsToToggle">The flags to toggle.</param>
         /// <returns>The enum value with the toggled flags.</returns>
-        public static T ToggleFlags<T>(this T enumValue, T flagsToToggle) where T : Enum
+        public static T ToggleFlags<T>(this T enumValue, T flagsToToggle) where T : struct, Enum
         {
-            return (T)(object)((int)(object)enumValue ^ (int)(object)flagsToToggle);
+            return FromUInt64<T>(enumValue.ToUInt64() ^ flagsToToggle.ToUInt64());
         }
 
         /// <summary>
@@ -101,14 +137,14 @@ namespace Toolbox
         /// <typeparam name="T">The type of the enum flags.</typeparam>
         /// <param name="flags">The flags to combine.</param>
         /// <returns>The combined flags as a single value of type T.</returns>
-        public static T CombineFlags<T>(params T[] flags) where T : Enum
+        public static T CombineFlags<T>(params T[] flags) where T : struct, Enum
         {
-            int combinedValue = 0;
+            ulong combinedValue = 0;
             foreach (T flag in flags)
             {
-                combinedValue |= (int)(flag as object);
+                combinedValue |= flag.ToUInt64();
             }
-            return (T)(combinedValue as object);
+            return FromUInt64<T>(combinedValue);
         }
 
         /// <summary>
@@ -119,10 +155,9 @@ namespace Toolbox
         /// <param name="defaultValue">The default value to return if no flags are provided</param>
         /// <param name="flags">The flags to combine</param>
         /// <returns>The result of combining the flags</returns>
-        public static T CombineFlagsOrDefault<T>(T defaultValue, params T[] flags) where T : Enum
+        public static T CombineFlagsOrDefault<T>(T defaultValue, params T[] flags) where T : struct, Enum
         {
-            if (flags == null || flags.Length == 0) return defaultValue;
-            return CombineFlags(flags);
+            return flags?.Length > 0 ? CombineFlags(flags) : defaultValue;
         }
 
         // Enum Information
@@ -132,7 +167,7 @@ namespace Toolbox
         /// </summary>
         /// <typeparam name="T">The type of the enumeration.</typeparam>
         /// <returns>An IEnumerable of type string containing the names of the enumeration values.</returns>
-        public static IEnumerable<string> GetNames<T>() where T : Enum
+        public static IEnumerable<string> GetNames<T>() where T : struct, Enum
         {
             return Enum.GetNames(typeof(T));
         }
@@ -142,7 +177,7 @@ namespace Toolbox
         /// </summary>
         /// <typeparam name="T">The type of the enumeration.</typeparam>
         /// <returns>An IEnumerable of type T containing all the values of the enumeration.</returns>
-        public static IEnumerable<T> GetValues<T>() where T : Enum
+        public static IEnumerable<T> GetValues<T>() where T : struct, Enum
         {
             return Enum.GetValues(typeof(T)).Cast<T>();
         }
@@ -153,7 +188,7 @@ namespace Toolbox
         /// <typeparam name="T">The type of the enumeration.</typeparam>
         /// <param name="value">The string value to parse.</param>
         /// <returns>The parsed enumeration value of type T.</returns>
-        public static T Parse<T>(string value) where T : Enum
+        public static T Parse<T>(string value) where T : struct, Enum
         {
             return (T)Enum.Parse(typeof(T), value);
         }
@@ -173,48 +208,26 @@ namespace Toolbox
         }
 
         /// <summary>
-        /// Converts an integer value to the specified enumeration type.
-        /// </summary>
-        /// <typeparam name="T">The type of the enumeration.</typeparam>
-        /// <param name="value">The integer value to be converted.</param>
-        /// <returns>An enumeration value of type T corresponding to the input integer value.</returns>
-        public static T FromInt<T>(int value) where T : Enum
-        {
-            return (T)(object)value;
-        }
-
-        /// <summary>
-        /// Converts the specified enumeration value to its corresponding integer representation.
-        /// </summary>
-        /// <typeparam name="T">The type of the enumeration.</typeparam>
-        /// <param name="enumValue">The enumeration value to convert.</param>
-        /// <returns>The integer representation of the enumeration value.</returns>
-        public static int ToInt<T>(this T enumValue) where T : Enum
-        {
-            return (int)(object)enumValue;
-        }
-
-        /// <summary>
-        /// Converts the specified enumeration value to a string representation using the Fast method.
+        /// Converts the specified enumeration value to a string representation using an Unsafe Fast method.
         /// </summary>
         /// <typeparam name="T">The type of the enumeration.</typeparam>
         /// <param name="enumValue">The enumeration value.</param>
         /// <returns>A string representation of the enumeration value.</returns>
-        public static string ToStringFast<T>(this T enumValue) where T : Enum
+        public static string ToStringFast<T>(this T enumValue) where T : struct, Enum
         {
             return Unsafe.As<T, int>(ref enumValue).ToString();
         }
 
         // Enum Navigation
-
+        /// <summary>
         /// Returns the next value in the enumeration.
         /// </summary>
         /// <typeparam name="T">The type of the enumeration.</typeparam>
         /// <param name="enumValue">The current value of the enumeration.</param>
         /// <returns>The next value in the enumeration.</returns>
-        public static T Next<T>(this T enumValue) where T : Enum
+        public static T Next<T>(this T enumValue) where T : struct, Enum
         {
-            var values = GetValues<T>().ToArray();
+            var values = GetEnumValues<T>();
             int index = Array.IndexOf(values, enumValue) + 1;
             return index >= values.Length ? values[0] : values[index];
         }
@@ -225,9 +238,9 @@ namespace Toolbox
         /// <typeparam name="T">The type of the enumeration.</typeparam>
         /// <param name="enumValue">The current enumeration value.</param>
         /// <returns>The previous value of the enumeration.</returns>
-        public static T Previous<T>(this T enumValue) where T : Enum
+        public static T Previous<T>(this T enumValue) where T : struct, Enum
         {
-            var values = GetValues<T>().ToArray();
+            var values = GetEnumValues<T>();
             int index = Array.IndexOf(values, enumValue) - 1;
             return index < 0 ? values[^1] : values[index];
         }
@@ -239,16 +252,30 @@ namespace Toolbox
         /// <param name="startInclusive">The starting value of the range (inclusive).</param>
         /// <param name="endExclusive">The ending value of the range (exclusive).</param>
         /// <returns>An IEnumerable of type T containing the values within the specified range.</returns>
-        public static IEnumerable<T> Range<T>(T startInclusive, T endExclusive) where T : Enum
+        public static IEnumerable<T> Range<T>(T startInclusive, T endExclusive) where T : struct, Enum
         {
-            var values = GetValues<T>().ToArray();
+            var values = GetEnumValues<T>();
             int startIndex = Array.IndexOf(values, startInclusive);
             int endIndex = Array.IndexOf(values, endExclusive);
 
             if (startIndex < 0 || endIndex < 0 || startIndex >= endIndex)
+            {
                 throw new ArgumentException("Invalid range specified.");
+            }
 
             return values[startIndex..endIndex];
+        }
+
+        private static readonly Dictionary<Type, Array> _enumValuesCache = new Dictionary<Type, Array>();
+
+        private static T[] GetEnumValues<T>() where T : Enum
+        {
+            if (!_enumValuesCache.TryGetValue(typeof(T), out var values))
+            {
+                values = Enum.GetValues(typeof(T));
+                _enumValuesCache[typeof(T)] = values;
+            }
+            return (T[])values;
         }
 
         // Enum Dictionaries
@@ -258,7 +285,7 @@ namespace Toolbox
         /// </summary>
         /// <typeparam name="T">The type of the enumeration.</typeparam>
         /// <returns>A dictionary with the enumeration names as keys and the enumeration values as values.</returns>
-        public static Dictionary<string, T> ToDictionary<T>() where T : Enum
+        public static IReadOnlyDictionary<string, T> ToDictionary<T>() where T : struct, Enum
         {
             return GetValues<T>().ToDictionary(e => e.ToString(), e => e);
         }
@@ -268,18 +295,19 @@ namespace Toolbox
         /// </summary>
         /// <typeparam name="T">The type of the enumeration.</typeparam>
         /// <returns>A dictionary where the keys are the enumeration values and the values are their string representations.</returns>
-        public static Dictionary<T, string> ToValueDictionary<T>() where T : Enum
+        public static IReadOnlyDictionary<T, string> ToValueDictionary<T>() where T : struct, Enum
         {
             return GetValues<T>().ToDictionary(e => e, e => e.ToString());
         }
 
         // Enum Min/Max/Count
 
+        /// <summary>
         /// Gets the maximum value of the specified enumeration type.
         /// </summary>
         /// <typeparam name="T">The type of the enumeration.</typeparam>
         /// <returns>The maximum value of type T.</returns>
-        public static T MaxValue<T>() where T : Enum
+        public static T MaxValue<T>() where T : struct, Enum
         {
             return GetValues<T>().Max();
         }
@@ -289,7 +317,7 @@ namespace Toolbox
         /// </summary>
         /// <typeparam name="T">The type of the enumeration.</typeparam>
         /// <returns>The minimum value of type T.</returns>
-        public static T MinValue<T>() where T : Enum
+        public static T MinValue<T>() where T : struct, Enum
         {
             return GetValues<T>().Min();
         }
@@ -299,11 +327,10 @@ namespace Toolbox
         /// </summary>
         /// <typeparam name="T">The type of the enumeration.</typeparam>
         /// <returns>The count of values in the specified enumeration type.</returns>
-        public static int Count<T>() where T : Enum
+        public static int Count<T>() where T : struct, Enum
         {
             return GetValues<T>().Count();
         }
-
         // Enum Validation
 
         /// <summary>
@@ -312,7 +339,7 @@ namespace Toolbox
         /// <typeparam name="T">The type of the enumeration.</typeparam>
         /// <param name="value">The value to check.</param>
         /// <returns>true if the specified value is a defined member of the enumeration type; otherwise, false.</returns>
-        public static bool IsDefined<T>(T enumValue) where T : Enum
+        public static bool IsDefined<T>(T enumValue) where T : struct, Enum
         {
             return Enum.IsDefined(typeof(T), enumValue);
         }
@@ -323,7 +350,7 @@ namespace Toolbox
         /// <typeparam name="T">The type of the enumeration.</typeparam>
         /// <param name="name">The name to check.</param>
         /// <returns>True if the name is a valid name for the enumeration type, otherwise false.</returns>
-        public static bool IsValidName<T>(string name) where T : Enum
+        public static bool IsValidName<T>(string name) where T : struct, Enum
         {
             return Enum.GetNames(typeof(T)).Contains(name);
         }
@@ -334,7 +361,7 @@ namespace Toolbox
         /// <typeparam name="T">The type of the enumeration.</typeparam>
         /// <param name="value">The value to check.</param>
         /// <returns>True if the value is a valid value of the enumeration; otherwise, false.</returns>
-        public static bool IsValidValue<T>(int value) where T : Enum
+        public static bool IsValidValue<T>(int value) where T : struct, Enum
         {
             return Enum.IsDefined(typeof(T), value);
         }
@@ -351,7 +378,7 @@ namespace Toolbox
         /// </summary>
         /// <typeparam name="T">The type of the enumeration.</typeparam>
         /// <returns>An IEnumerable of strings containing the display names of the enumeration values.</returns>
-        public static IEnumerable<string> GetDisplayNames<T>() where T : Enum
+        public static IEnumerable<string> GetDisplayNames<T>() where T : struct, Enum
         {
             if (_displayNamesCache.TryGetValue(typeof(T), out var displayNames)) return displayNames;
 
@@ -368,7 +395,7 @@ namespace Toolbox
         /// <typeparam name="T">The type of the enumeration.</typeparam>
         /// <param name="enumValue">The enumeration value.</param>
         /// <returns>The display name of the specified enumeration value.</returns>
-        public static string GetDisplayName<T>(this T enumValue) where T : Enum
+        public static string GetDisplayName<T>(this T enumValue) where T : struct, Enum
         {
             return typeof(T).GetField(enumValue.ToString())
                 ?.GetCustomAttribute<System.ComponentModel.DataAnnotations.DisplayAttribute>()?.Name ?? enumValue.ToString();
@@ -381,7 +408,7 @@ namespace Toolbox
         /// <returns>
         /// An IEnumerable of type string containing the descriptions of the enumeration values.
         /// </returns>
-        public static IEnumerable<string> GetDescriptions<T>() where T : Enum
+        public static IEnumerable<string> GetDescriptions<T>() where T : struct, Enum
         {
             return typeof(T).GetFields(BindingFlags.Public | BindingFlags.Static)
                 .Select(f => f.GetCustomAttribute<System.ComponentModel.DescriptionAttribute>()?.Description ?? f.Name);
@@ -393,7 +420,7 @@ namespace Toolbox
         /// <typeparam name="T">The type of the enumeration.</typeparam>
         /// <param name="enumValue">The enumeration value.</param>
         /// <returns>The description attribute of the enumeration value, or the string representation of the enumeration value if no description attribute is found.</returns>
-        public static string GetDescription<T>(this T enumValue) where T : Enum
+        public static string GetDescription<T>(this T enumValue) where T : struct, Enum
         {
             return typeof(T).GetField(enumValue.ToString())
                 ?.GetCustomAttribute<System.ComponentModel.DescriptionAttribute>()?.Description ?? enumValue.ToString();
@@ -404,7 +431,7 @@ namespace Toolbox
         /// </summary>
         /// <typeparam name="T">The type of the enumeration.</typeparam>
         /// <returns>An IEnumerable of KeyValuePair<T, string> representing the display pairs, where the key is an enumeration value and the value is its display name.</returns>
-        public static IEnumerable<KeyValuePair<T, string>> GetDisplayPairs<T>() where T : Enum
+        public static IEnumerable<KeyValuePair<T, string>> GetDisplayPairs<T>() where T : struct, Enum
         {
             return GetValues<T>().Select(e => new KeyValuePair<T, string>(e, e.GetDisplayName()));
         }
@@ -414,7 +441,7 @@ namespace Toolbox
         /// </summary>
         /// <typeparam name="T">The type of the enumeration.</typeparam>
         /// <returns>An IEnumerable of KeyValuePair<T, string> containing the enumeration value and its corresponding description.</returns>
-        public static IEnumerable<KeyValuePair<T, string>> GetDescriptionPairs<T>() where T : Enum
+        public static IEnumerable<KeyValuePair<T, string>> GetDescriptionPairs<T>() where T : struct, Enum
         {
             return GetValues<T>().Select(e => new KeyValuePair<T, string>(e, e.GetDescription()));
         }
