@@ -1,7 +1,8 @@
 {
     "name": "Toolbox",
     "references": [
-      "R3.Unity"
+      "R3.Unity",
+      "UniTask"
     ],
     "optionalUnityReferences": [],
     "includePlatforms": [],
@@ -9,7 +10,8 @@
     "allowUnsafeCode": false,
     "overrideReferences": false,
     "precompiledReferences": [
-      "R3.dll"
+      "R3.dll",
+      "ObservableCollections.R3.dll"
     ],
     "autoReferenced": true,
     "defineConstraints": []
