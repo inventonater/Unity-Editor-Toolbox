@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
@@ -7,9 +8,8 @@ using Object = UnityEngine.Object;
 
 namespace Toolbox.Editor.Editors
 {
-    [CustomEditor(typeof(Behaviour), true, isFallback = true)]
+    // [CustomEditor(typeof(Sample), true, isFallback = false)]
     [CanEditMultipleObjects]
-    [Experimental]
     public class BehaviourInspectorEditor : ToolboxEditor
     {
         private const double UpdateThreshold = 0.2f;
@@ -37,6 +37,21 @@ namespace Toolbox.Editor.Editors
             base.DrawCustomInspector();
 
             Object myClass = (Object)target;
+
+            // var propertyInfos = myClass.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            // foreach (var propertyInfo in propertyInfos.Where(p => p.Name.Contains("rx")))
+            // {
+            //     Rx<PopulatorTest> rxProp = propertyInfo.GetValue(myClass) as Rx<PopulatorTest>;
+            //     string fieldName = propertyInfo.Name;
+            //     EditorGUI.BeginChangeCheck();
+            //     EditorGUILayout.LabelField(fieldName);
+            //     Object objectField = EditorGUILayout.ObjectField(fieldName, rxProp.Value, rxProp.Value.GetType());
+            //     if (EditorGUI.EndChangeCheck())
+            //     {
+            //         Debug.Log(objectField.GetType());
+            //         rxProp.Value = (PopulatorTest)objectField;
+            //     }
+            // }
 
             // Get all private fields using reflection
             FieldInfo[] fields = myClass.GetType().GetFields(BindingFlags.Instance | BindingFlags.NonPublic);

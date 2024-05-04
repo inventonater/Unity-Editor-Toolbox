@@ -3,7 +3,8 @@
     "rootNamespace": "",
     "references": [
         "Toolbox",
-        "Unity.EditorCoroutines.Editor"
+        "Unity.EditorCoroutines.Editor",
+        "R3.Unity"
     ],
     "includePlatforms": [
         "Editor"

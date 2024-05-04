@@ -12,10 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 79ca0b3b59a54e22b082eedaa816c526, type: 3}
   m_Name: _None
   m_EditorClassIdentifier: 
-  text: Analyze this code and give me a general code review.  Help me understand
-    where things can be improved and extended.  Tell me if anything looks like it
-    could cause issues or misunderstandings.  Let me know if there are any performance
-    concerns.  Help me make it more readable and easy to maintain.
+  text: Choose a Template or enter your custom prompt here...
   options:
     filePathDetails: 1
     stripComments: 0

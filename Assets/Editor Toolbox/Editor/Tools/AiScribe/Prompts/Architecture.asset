@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 79ca0b3b59a54e22b082eedaa816c526, type: 3}
+  m_Name: Architecture
+  m_EditorClassIdentifier: 
+  text: 'Imagine that you have an infinite sequence, such as a stream of mouse position
+    and button up/down state. This sequence doesn''t know anything about the downstream
+    consumers. We will build a chain of subscribers which are also observables. The
+    first subscriber watches for mouse press/release events using the up/down states.
+    Another watches for Hover on a Target. Another merges the Hover with press/release
+    to generate Drag events concerned with the Target. The stream of Drag events
+    are subscribed to by a MoveHandler. Once the MoveHandler determines that the
+    Drag has moved the Target into the GoalZone, it needs to notify the upstream
+    components that this press state has been Completed successfully.
+
+    Show me
+    what this system would look like implemented with R3 (if helpful, also use UniTask
+    and ObservableCollections.R3)'
+  options:
+    filePathDetails: 1
+    stripComments: 1
+    includeMarkDownFiles: 0
+    projectMetadata: 0
+    selectedGameObjects: 0
+    summarizeHierarchy: 0

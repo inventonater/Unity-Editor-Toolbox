@@ -15,8 +15,8 @@ namespace Toolbox.Editor
         public static event Action ForwardButtonDown = delegate { };
         public static event Action BackwardButtonDown = delegate { };
 
-        private const int MenuItemPriority = 100;
-        private const string MenuItemRoot = "Window/Selection History/";
+        private const int MenuItemPriority = ToolsMenu.Priority;
+        private const string MenuItemRoot = ToolsMenu.MenuRoot + "/Selection History/";
 
         [MenuItem(MenuItemRoot + "Open", priority = MenuItemPriority)]
         public static void ShowWindow() {
