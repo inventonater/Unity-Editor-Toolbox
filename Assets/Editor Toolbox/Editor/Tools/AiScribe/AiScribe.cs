@@ -5,6 +5,20 @@ using System.Linq;
 using System.Collections.Generic;
 
 
+// notes on prompting
+// natural inclination is to use encouraging and grateful language.  avoid this.  use deadpan, neutral language and avoid leading questions.
+// avoid asking for specific code.  instead ask for the purpose of the code.
+// be aggressive about deleting code.  let the ai regenerate from a clean slate.
+// the best insights and implementations come from a fresh chat thread with a well balanced, well rounded initial prompt.  each iteration of conversation dilutes the insightfulness quadratically.
+// optimize for the human - optimize for convenince in how you interface with th ai.  reduce cognitive effort and friction.
+// kill and regenerate your comments constantly.  if the ai is getting it wrong consistently, consider this a 'code smell'
+// the ai will have a tendency towards particular solutions given the starting conditions.  never resist this.  you want to 'surf' the ai's tendencies gracefully from a clean initial prompt, not fight them.
+// keep logic in the code clustered tightly by function so that you can easily copy, delete, and regenerate code section by section.  Consider using the `partial` keyword to make this easier.
+// start a file, write the data structures and/or code using the final product, then write a prompt.
+// ai is better at extrapolating than interpolating.  give it a foundation and a direction, avoid asking to to bridge a gap.
+// notice the language, style, and structure of how the ai responds to your prompts and try to mirror that where appropriate. steer it, but never resist it.
+// first phase is prospecting for language, terms, and framing.
+
 public class AiScribe : EditorWindow
 {
     const string ToolName = nameof(AiScribe);

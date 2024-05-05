@@ -45,14 +45,12 @@ namespace Toolbox
         /// <param name="result">The resolved component of type T.</param>
         /// <param name="options">The options for resolving the component.</param>
         /// <returns>The resolved component of type T, or null if not found.</returns>
-        public static T? Descendant<T>(this Component searcher, ref T? result, DescendantTraversalType traversalType = DescendantTraversalType.BreadthFirst,
-            ResolveOptions options = null) where T : Component => result = Descendant<T>(searcher, traversalType, options);
+        public static T? Descendant<T>(this Component searcher, ref T? result, ResolveOptions options = null) where T : Component => result = Descendant<T>(searcher, options);
 
-        public static T? Descendant<T>(this Component searcher, DescendantTraversalType traversalType = DescendantTraversalType.BreadthFirst, ResolveOptions options = null)
-            where T : Component
+        public static T? Descendant<T>(this Component searcher, ResolveOptions options = null) where T : Component
         {
-            Debug.LogWarning("Need to account for include inactive in Descendant method and ResolveOptions");
-            return ResolveComponent(searcher, searcher.GetDescendants<T>(traversalType), options);
+            Debug.LogError("ResolveOptions needs to align with DescendantEnumerableOptions somehow ");
+            return ResolveComponent(searcher, searcher.GetDescendants<T>(), options);
         }
 
         /// <summary>
@@ -64,7 +62,7 @@ namespace Toolbox
         /// <returns>The resolved component of type T, or null if not found.</returns>
         public static T? Ancestor<T>(this Component searcher, ResolveOptions options) where T : Component
         {
-            Debug.LogWarning("Need to account for include inactive in Descendant method and ResolveOptions");
+            Debug.LogError("ResolveOptions needs to align with DescendantEnumerableOptions somehow ");
             return ResolveComponent(searcher, searcher.GetAncestors<T>(), options);
         }
 
@@ -91,38 +89,7 @@ namespace Toolbox
             return null;
         }
 
-        /// <summary>
-        /// Filters the components based on the specified options.
-        /// </summary>
-        /// <typeparam name="T">The type of the components to filter.</typeparam>
-        /// <param name="searcher">The component from which to start the search.</param>
-        /// <param name="components">The components to filter.</param>
-        /// <param name="options">The options for resolving the component.</param>
-        /// <returns>The filtered components.</returns>
-        private static IEnumerable<T> FilterComponents<T>(Component searcher, IEnumerable<T> components, ResolveOptions options) where T : Component
-        {
-            var filtered = options.excludeSibling
-                ? components.Where(c => c.gameObject != searcher.gameObject)
-                : components;
 
-            if (!string.IsNullOrEmpty(options.nameStrict))
-            {
-                filtered = filtered.Where(c => c.name == options.nameStrict);
-            }
-
-            if (!string.IsNullOrEmpty(options.nameContains))
-            {
-                filtered = filtered.Where(c => c.name.IndexOf(options.nameContains, StringComparison.OrdinalIgnoreCase) >= 0);
-            }
-
-            if (options.sidedName)
-            {
-                var side = searcher.SideFromName();
-                filtered = filtered.Where(c => c.name.IndexOf(side.ToString(), StringComparison.OrdinalIgnoreCase) >= 0);
-            }
-
-            return filtered;
-        }
 
         /// <summary>
         /// Sorts the components based on the specified search order.
@@ -182,60 +149,5 @@ namespace Toolbox
         }
     }
 
-    /// <summary>
-    /// Represents the options for resolving a component.
-    /// </summary>
-    [Serializable]
-    public class ResolveOptions
-    {
-        /// <summary>
-        /// Gets or sets the exact name of the component to resolve.
-        /// </summary>
-        public string? nameStrict;
 
-        /// <summary>
-        /// Gets or sets a substring that the component's name should contain.
-        /// </summary>
-        public string? nameContains;
-
-        /// <summary>
-        /// Gets or sets a value indicating whether the component is optional.
-        /// </summary>
-        public bool optional;
-
-        /// <summary>
-        /// Gets or sets a value indicating whether to exclude sibling components when resolving.
-        /// </summary>
-        public bool excludeSibling;
-
-        /// <summary>
-        /// Gets or sets a value indicating whether the searcher and returned component should have matching "Left" or "Right" in their names.
-        /// </summary>
-        public bool sidedName;
-
-        /// <summary>
-        /// Gets or sets a value indicating whether to include inactive components in the search.
-        /// </summary>
-        public bool includeInactive;
-
-        /// <summary>
-        /// Gets or sets the order in which to sort the resolved components.
-        /// </summary>
-        public ResolveSearchOrder resolveSearchOrder;
-
-        /// <summary>
-        /// Gets or sets the name of the calling method.
-        /// </summary>
-        public string? callerMethod;
-    }
-
-    /// <summary>
-    /// Represents the search order for resolving components.
-    /// </summary>
-    public enum ResolveSearchOrder
-    {
-        None,
-        Closest,
-        Farthest
-    }
 }

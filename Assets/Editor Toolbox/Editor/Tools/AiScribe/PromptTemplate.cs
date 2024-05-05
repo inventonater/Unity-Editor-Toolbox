@@ -7,6 +7,8 @@ public class PromptTemplate : ScriptableObject
     public const string FileName = nameof(AiScribe) + " Prompt";
     public const string MenuName = nameof(AiScribe) + "/New Prompt Templates";
     public string text = "Enter your custom prompt here...";
+    public string notes = "";
+
     public AiScribe.Options options;
 
     [CustomEditor(typeof(PromptTemplate))]
@@ -18,16 +20,23 @@ public class PromptTemplate : ScriptableObject
         {
             serializedObject.Update();
 
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("options"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(options)));
 
             EditorGUILayout.Space();
 
-            SerializedProperty textProp = serializedObject.FindProperty("text");
+            SerializedProperty textProp = serializedObject.FindProperty(nameof(text));
+            SerializedProperty notesProp = serializedObject.FindProperty(nameof(notes));
+
             GUIStyle textAreaStyle = new GUIStyle(GUI.skin.textArea) { wordWrap = true };
+
             EditorGUI.BeginChangeCheck();
             string newText = EditorGUILayout.TextArea(textProp.stringValue, textAreaStyle, GUILayout.ExpandHeight(true));
+            string newNotes = EditorGUILayout.TextArea(notesProp.stringValue, textAreaStyle, GUILayout.Height(200));
             if (EditorGUI.EndChangeCheck())
+            {
                 textProp.stringValue = newText;
+                notesProp.stringValue = newNotes;
+            }
 
             serializedObject.ApplyModifiedProperties();
         }

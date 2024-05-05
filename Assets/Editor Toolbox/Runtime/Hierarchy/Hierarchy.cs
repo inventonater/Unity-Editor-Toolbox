@@ -6,6 +6,7 @@ using Component = UnityEngine.Component;
 
 namespace Toolbox
 {
+
     public enum HierarchySearchOrder
     {
         None,
@@ -45,7 +46,10 @@ namespace Toolbox
 
     public static class Hierarchy
     {
-
+        public static IEnumerable<Transform> GetRootGameObject()
+        {
+            return UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects().Select(go => go.transform);
+        }
 
         /// <summary>
         /// Ensure that there are no other instances of this component type in my parents or children

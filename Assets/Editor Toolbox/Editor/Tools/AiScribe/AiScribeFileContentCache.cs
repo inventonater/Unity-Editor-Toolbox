@@ -58,17 +58,20 @@ public class AiScribeFileContentCache
         if (options.selectedGameObjects) AppendGameObjectDetails(gameObjects, allFileContent);
         if (options.summarizeHierarchy) AppendHierarchy(allFileContent);
 
-        foreach (var file in _files)
-        {
-            if (options.filePathDetails) allFileContent.AppendLine($"// Begin Filename: {Path.GetFileName(file)}\n// Path: {file}\n");
-            var fileContent = File.ReadAllText(file);
-            allFileContent.Append(options.stripComments ? StripCommentsAndBlankLines(fileContent) : fileContent);
-            allFileContent.AppendLine("\n\n");
-            if (options.filePathDetails) allFileContent.AppendLine($"// End Filename: {Path.GetFileName(file)}");
-        }
+        foreach (var file in _files) WriteFile(options, allFileContent, file);
 
         Content = allFileContent.ToString();
         WordCount = CountWords(Content);
+    }
+
+    private static void WriteFile(AiScribe.Options options, StringBuilder allFileContent, string file)
+    {
+        if (options.filePathDetails) allFileContent.AppendLine($"// Begin: {Path.GetFileName(file)} ({file})\n");
+        var fileContent = File.ReadAllText(file);
+        allFileContent.Append(options.stripComments ? StripCommentsAndBlankLines(fileContent) : fileContent);
+        allFileContent.AppendLine("\n");
+        if (options.filePathDetails) allFileContent.AppendLine($"// End: {Path.GetFileName(file)}");
+        allFileContent.AppendLine("\n\n");
     }
 
     private static string StripCommentsAndBlankLines(string sourceCode)
