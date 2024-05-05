@@ -45,17 +45,7 @@ namespace Toolbox
 
     public static class Hierarchy
     {
-        // Extension method for getting descendants
-        public static DescendantEnumerable<T> Descendants<T>(this Component component, ComponentIteratorDescendantSearchType searchType = ComponentIteratorDescendantSearchType.BreadthFirst, Func<T, bool> filter = null) where T : Component
-        {
-            return new DescendantEnumerable<T>(component, searchType, filter);
-        }
 
-        // Extension method for getting ancestors
-        public static AncestorEnumerable<T> Ancestors<T>(this Component component, Func<T, bool> filter = null) where T : Component
-        {
-            return new AncestorEnumerable<T>(component, filter);
-        }
 
         /// <summary>
         /// Ensure that there are no other instances of this component type in my parents or children

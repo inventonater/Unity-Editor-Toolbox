@@ -56,8 +56,10 @@ public class AiScribe : EditorWindow
                 Debug.LogError($"Couldn't load PromptTemplate {guid}");
                 continue;
             }
+
             _promptTemplates.Add(loadAssetAtPath);
         }
+
         Selection.selectionChanged += WhenSelectionChanged;
         WhenSelectionChanged();
     }
@@ -91,7 +93,8 @@ public class AiScribe : EditorWindow
         using var scope = new EditorGUILayout.VerticalScope(GUI.skin.box);
 
         var prev = showCachedFiles;
-        showCachedFiles = EditorGUILayout.Foldout(prev, $"Included Files ({_fileContentCache.RelativePaths.Count}), Total Word Count ({AiScribeFileContentCache.CountWords(userPrompt) + _fileContentCache.WordCount})");
+        showCachedFiles = EditorGUILayout.Foldout(prev,
+            $"Included Files ({_fileContentCache.RelativePaths.Count}), Total Word Count ({AiScribeFileContentCache.CountWords(userPrompt) + _fileContentCache.WordCount})");
 
         if (prev != showCachedFiles) ShowWindow(_defaultMinWindowHeight + (showCachedFiles ? 200 : 0));
 
@@ -127,6 +130,7 @@ public class AiScribe : EditorWindow
     }
 
     private int _promptTemplateIndex;
+
     void RenderCustomPromptSection()
     {
         var selectedIndex = EditorGUILayout.Popup("Select Prompt Template", _promptTemplateIndex, _promptTemplates.Select(pt => pt.Title.TrimStart('_')).ToArray());

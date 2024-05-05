@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Toolbox;
 using UnityEngine;
 
 namespace Toolbox
@@ -44,12 +45,14 @@ namespace Toolbox
         /// <param name="result">The resolved component of type T.</param>
         /// <param name="options">The options for resolving the component.</param>
         /// <returns>The resolved component of type T, or null if not found.</returns>
-        public static T? Descendant<T>(this Component searcher, ref T? result, ResolveOptions options) where T : Component => result = Descendant<T>(searcher, options);
+        public static T? Descendant<T>(this Component searcher, ref T? result, DescendantTraversalType traversalType = DescendantTraversalType.BreadthFirst,
+            ResolveOptions options = null) where T : Component => result = Descendant<T>(searcher, traversalType, options);
 
-        public static T? Descendant<T>(this Component searcher, ResolveOptions options) where T : Component
+        public static T? Descendant<T>(this Component searcher, DescendantTraversalType traversalType = DescendantTraversalType.BreadthFirst, ResolveOptions options = null)
+            where T : Component
         {
             Debug.LogWarning("Need to account for include inactive in Descendant method and ResolveOptions");
-            return ResolveComponent(searcher, searcher.Descendants<T>(), options);
+            return ResolveComponent(searcher, searcher.GetDescendants<T>(traversalType), options);
         }
 
         /// <summary>
@@ -62,7 +65,7 @@ namespace Toolbox
         public static T? Ancestor<T>(this Component searcher, ResolveOptions options) where T : Component
         {
             Debug.LogWarning("Need to account for include inactive in Descendant method and ResolveOptions");
-            return ResolveComponent(searcher, searcher.Ancestors<T>(), options);
+            return ResolveComponent(searcher, searcher.GetAncestors<T>(), options);
         }
 
         // Other methods omitted for brevity

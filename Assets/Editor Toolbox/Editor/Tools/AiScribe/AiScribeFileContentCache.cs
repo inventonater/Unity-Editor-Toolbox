@@ -60,9 +60,11 @@ public class AiScribeFileContentCache
 
         foreach (var file in _files)
         {
-            if (options.filePathDetails) allFileContent.Append($"// Filename: {Path.GetFileName(file)}\n// Path: {file}\n\n");
+            if (options.filePathDetails) allFileContent.AppendLine($"// Begin Filename: {Path.GetFileName(file)}\n// Path: {file}\n");
             var fileContent = File.ReadAllText(file);
             allFileContent.Append(options.stripComments ? StripCommentsAndBlankLines(fileContent) : fileContent);
+            allFileContent.AppendLine("\n\n");
+            if (options.filePathDetails) allFileContent.AppendLine($"// End Filename: {Path.GetFileName(file)}");
         }
 
         Content = allFileContent.ToString();

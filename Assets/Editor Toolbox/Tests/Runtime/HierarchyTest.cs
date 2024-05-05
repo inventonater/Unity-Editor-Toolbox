@@ -23,12 +23,12 @@ namespace Toolbox
         [SerializeField] private Component _renderLast;
 
         [SerializeField] private Collider _collider;
-        [SerializeField] private ResolveSearchOrder resolveSearchOrder = ResolveSearchOrder.Closest;
+
         private void Update()
         {
             _collider = null;
 
-            this.Descendant(ref _collider, new (){ resolveSearchOrder = resolveSearchOrder});
+            this.Descendant(ref _collider);
 
             if (!A || !B || !C) return;
 
