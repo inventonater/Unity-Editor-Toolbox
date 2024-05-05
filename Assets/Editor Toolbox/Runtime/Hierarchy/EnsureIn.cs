@@ -7,16 +7,16 @@ namespace Toolbox
 {
     public static class EnsureIn
     {
-        private static readonly Dictionary<RelationFlags, Func<Component, Type, Component>> SearchFunctions = new()
+        private static readonly IReadOnlyDictionary<RelationFlags, Func<Component, Type, Component>> SearchFunctions = new Dictionary<RelationFlags, Func<Component, Type, Component>>()
         {
             { RelationFlags.Sibling, (searcher, type) => searcher.GetComponent(type) },
             { RelationFlags.Parent, (searcher, type) => searcher.transform.parent.GetComponent(type) },
-            { RelationFlags.Child, (searcher, type) => GetChildComponent(searcher, type) },
+            { RelationFlags.Child, (searcher, type) => GetFirstChildComponent(searcher, type) },
             { RelationFlags.Ancestor, (searcher, type) => searcher.GetComponentInParent(type) },
             { RelationFlags.Descendant, (searcher, type) => searcher.GetComponentInChildren(type, true) }
         };
 
-        private static Component GetChildComponent(Component searcher, Type type)
+        private static Component GetFirstChildComponent(Component searcher, Type type)
         {
             for (int i = 0; i < searcher.transform.childCount; i++)
             {

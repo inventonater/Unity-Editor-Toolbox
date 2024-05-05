@@ -40,7 +40,7 @@ namespace Toolbox
         {
             if (component == null)
             {
-                Debug.LogError("Component is null");
+                Debug.LogWarning("Component is null");
                 return Side.None;
             }
 
