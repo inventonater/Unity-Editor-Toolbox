@@ -1,40 +1,43 @@
 ﻿using R3;
 using UnityEngine;
 
-public class DragMechanic : ReactiveMechanic<DragMechanic.Event, MouseInputFrame>
+namespace Toolbox.ReactiveMechanics
 {
-    public readonly struct Event : IMechanicEvent
+    public class DragMechanic : ReactiveMechanic<DragMechanic.Event, MouseInputFrame>
     {
-        public Event(DragMechanic mechanic, Vector2 dragStartPosition, Vector2 dragEndPosition)
+        public readonly struct Event : IMechanicEvent
         {
-            Mechanic = mechanic;
-            DragStartPosition = dragStartPosition;
-            DragEndPosition = dragEndPosition;
+            public Event(DragMechanic mechanic, Vector2 dragStartPosition, Vector2 dragEndPosition)
+            {
+                Mechanic = mechanic;
+                DragStartPosition = dragStartPosition;
+                DragEndPosition = dragEndPosition;
+            }
+
+            public IMechanic Mechanic { get; }
+            public Vector2 DragStartPosition { get; }
+            public Vector2 DragEndPosition { get; }
         }
 
-        public IMechanic Mechanic { get; }
-        public Vector2 DragStartPosition { get; }
-        public Vector2 DragEndPosition { get; }
-    }
+        public float DragThreshold = 10f;
 
-    public float DragThreshold = 10f;
+        protected override void SetupMechanic(IInputSource<MouseInputFrame> inputSource)
+        {
+            var dragStart = inputSource.InputObservable
+                .Where(input => input.IsPressed)
+                .Select(input => input.Position);
 
-    protected override void SetupMechanic(IInputSource<MouseInputFrame> inputSource)
-    {
-        var dragStart = inputSource.InputObservable
-            .Where(input => input.IsPressed)
-            .Select(input => input.Position);
+            var dragMove = inputSource.InputObservable
+                .Skip(1)
+                .Where(input => !input.IsPressed)
+                .Select(input => input.Position);
 
-        var dragMove = inputSource.InputObservable
-            .Skip(1)
-            .Where(input => !input.IsPressed)
-            .Select(input => input.Position);
-
-        dragStart
-            .SelectMany(startPosition => dragMove
-                .TakeUntil(inputSource.InputObservable.Where(input => !input.IsPressed))
-                .SkipWhile(position => Vector2.Distance(startPosition, position) < DragThreshold)
-                .Select(position => new { StartPosition = startPosition, CurrentPosition = position }))
-            .Subscribe(drag => FireEvent(new Event(this, drag.StartPosition, drag.CurrentPosition)));
+            dragStart
+                .SelectMany(startPosition => dragMove
+                    .TakeUntil(inputSource.InputObservable.Where(input => !input.IsPressed))
+                    .SkipWhile(position => Vector2.Distance(startPosition, position) < DragThreshold)
+                    .Select(position => new { StartPosition = startPosition, CurrentPosition = position }))
+                .Subscribe(drag => FireEvent(new Event(this, drag.StartPosition, drag.CurrentPosition)));
+        }
     }
 }

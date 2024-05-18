@@ -369,39 +369,6 @@ namespace Toolbox
         // Enum Display Names and Descriptions
 
         /// <summary>
-        /// A cache that stores display names for enums.
-        /// </summary>
-        private static readonly Dictionary<Type, string[]> _displayNamesCache = new Dictionary<Type, string[]>();
-
-        /// <summary>
-        /// Gets the display names of the enumeration values.
-        /// </summary>
-        /// <typeparam name="T">The type of the enumeration.</typeparam>
-        /// <returns>An IEnumerable of strings containing the display names of the enumeration values.</returns>
-        public static IEnumerable<string> GetDisplayNames<T>() where T : struct, Enum
-        {
-            if (_displayNamesCache.TryGetValue(typeof(T), out var displayNames)) return displayNames;
-
-            displayNames = typeof(T).GetFields(BindingFlags.Public | BindingFlags.Static)
-                .Select(f => f.GetCustomAttribute<System.ComponentModel.DataAnnotations.DisplayAttribute>()?.Name ?? f.Name)
-                .ToArray();
-            _displayNamesCache[typeof(T)] = displayNames;
-            return displayNames;
-        }
-
-        /// <summary>
-        /// Gets the display name of the specified enumeration value.
-        /// </summary>
-        /// <typeparam name="T">The type of the enumeration.</typeparam>
-        /// <param name="enumValue">The enumeration value.</param>
-        /// <returns>The display name of the specified enumeration value.</returns>
-        public static string GetDisplayName<T>(this T enumValue) where T : struct, Enum
-        {
-            return typeof(T).GetField(enumValue.ToString())
-                ?.GetCustomAttribute<System.ComponentModel.DataAnnotations.DisplayAttribute>()?.Name ?? enumValue.ToString();
-        }
-
-        /// <summary>
         /// Gets the descriptions of the specified enumeration.
         /// </summary>
         /// <typeparam name="T">The type of the enumeration.</typeparam>
@@ -424,16 +391,6 @@ namespace Toolbox
         {
             return typeof(T).GetField(enumValue.ToString())
                 ?.GetCustomAttribute<System.ComponentModel.DescriptionAttribute>()?.Description ?? enumValue.ToString();
-        }
-
-        /// <summary>
-        /// Gets the display pairs of the specified enumeration.
-        /// </summary>
-        /// <typeparam name="T">The type of the enumeration.</typeparam>
-        /// <returns>An IEnumerable of KeyValuePair<T, string> representing the display pairs, where the key is an enumeration value and the value is its display name.</returns>
-        public static IEnumerable<KeyValuePair<T, string>> GetDisplayPairs<T>() where T : struct, Enum
-        {
-            return GetValues<T>().Select(e => new KeyValuePair<T, string>(e, e.GetDisplayName()));
         }
 
         /// <summary>

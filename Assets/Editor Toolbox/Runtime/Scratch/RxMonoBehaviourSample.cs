@@ -15,7 +15,7 @@ namespace Toolbox
     {
     }
 
-    public class Sample : MonoBehaviour, IInit
+    public class Sample : MonoBehaviour, ILazy<Sample>
     {
         private RxValue<Vector3> _position;
         public RxValue<Vector3> Position => new(() => transform.position, v => transform.position = v);
@@ -24,7 +24,7 @@ namespace Toolbox
         public RxRef<Canvas> ParentCanvas => I.Parent(ref _parentCanvas);
 
         private RxRef<Transform> _reallyComplex;
-        public RxRef<Transform> SuperComplex => _reallyComplex ??= this.AllDescendants<Transform>()
+        public RxRef<Transform> SuperComplex => _reallyComplex ??= this.QueryDescendants<Transform>()
                         .Where(t => t.position.y > 0.5f)
                         .OrderBy(t => t.position.z)
                         .FirstOrDefault(t => t.forward.Dot(ParentCanvas.Value.transform.forward) > 0).Rx();
@@ -61,11 +61,12 @@ namespace Toolbox
         public Sample _childRef1;
         public Transform _heya1;
 
-        private Sample I => Init();
+        private Sample I => Ready();
         private bool _init;
-        public Sample Init()
+        public Sample Ready()
         {
             if(_init) return this;
+            _init = true;
             DoStuff();
             return this;
         }

@@ -1,25 +1,28 @@
 ﻿using R3;
 using UnityEngine;
 
-public class ScrollMechanic : ReactiveMechanic<ScrollMechanic.Event, MouseInputFrame>
+namespace Toolbox.ReactiveMechanics
 {
-    public readonly struct Event : IMechanicEvent
+    public class ScrollMechanic : ReactiveMechanic<ScrollMechanic.Event, MouseInputFrame>
     {
-        public Event(ScrollMechanic mechanic, float scrollDelta)
+        public readonly struct Event : IMechanicEvent
         {
-            Mechanic = mechanic;
-            ScrollDelta = scrollDelta;
+            public Event(ScrollMechanic mechanic, float scrollDelta)
+            {
+                Mechanic = mechanic;
+                ScrollDelta = scrollDelta;
+            }
+
+            public IMechanic Mechanic { get; }
+            public float ScrollDelta { get; }
         }
 
-        public IMechanic Mechanic { get; }
-        public float ScrollDelta { get; }
-    }
-
-    protected override void SetupMechanic(IInputSource<MouseInputFrame> inputSource)
-    {
-        inputSource.InputObservable
-            .Select(input => Input.mouseScrollDelta.y)
-            .Where(delta => delta != 0)
-            .Subscribe(delta => FireEvent(new Event(this, delta)));
+        protected override void SetupMechanic(IInputSource<MouseInputFrame> inputSource)
+        {
+            inputSource.InputObservable
+                .Select(input => Input.mouseScrollDelta.y)
+                .Where(delta => delta != 0)
+                .Subscribe(delta => FireEvent(new Event(this, delta)));
+        }
     }
 }

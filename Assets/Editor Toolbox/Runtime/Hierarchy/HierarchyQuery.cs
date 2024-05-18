@@ -45,6 +45,7 @@ namespace Toolbox
             public InactivePolicyFlags InactivePolicy { get; set; } = InactivePolicyFlags.SkipAllInactive;
 
             public bool ShouldSkip(GameObject gameObject) => !gameObject.activeInHierarchy && InactivePolicy.HasFlag(InactivePolicyFlags.SkipInactiveGameObjects);
+
             public bool ShouldSkip(T component)
             {
                 if (component is Behaviour behaviour && !behaviour.enabled) return InactivePolicy.HasFlag(InactivePolicyFlags.SkipInactiveComponents);
@@ -57,8 +58,11 @@ namespace Toolbox
         public TraversalRules QueryTraversal { get; set; } = new TraversalRules();
         public ComponentFilterRules<T> Filter { get; set; } = new ComponentFilterRules<T>();
 
-        public HierarchyQuery(Component origin) => Origin = origin;
-        public HierarchyQuery(Component origin, ITraversalAlgorithm<T> traversal) : this(origin) => TraversalAlgorithm = traversal;
+        public HierarchyQuery(Component origin, ITraversalAlgorithm<T> traversal)
+        {
+            Origin = origin;
+            TraversalAlgorithm = traversal;
+        }
 
         public HierarchyQuery<T> With(ITraversalAlgorithm<T> traversal)
         {

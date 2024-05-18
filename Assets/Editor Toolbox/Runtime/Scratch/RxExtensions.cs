@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ObservableCollections;
 using Toolbox;
 using UnityEngine;
 
-namespace R3
+namespace R3 // Keep the R3 namespace to ensure ExtensionMethods are always available
 {
     // NEVER a GETTER, only a RESOLVER
     // reactiveProperty wraps a currentValue by it's nature.  Having a Getter means the currentValue can be different from teh rsult of the Getter
@@ -63,27 +64,36 @@ namespace R3
         }
     }
 
-    public interface IInit
+    public interface ILazy<T>
     {
-        Sample Init();
+        T Ready();
     }
 
     public static class RxExtensions
     {
-        public static List<T> AllDescendants<T>(this Component c) where T : Component => c.GetComponentsInChildren<T>().Where(other => c != other).ToList();
+        public static RxRef<T> Child<T>(this Component c) where T : Component => new(c.QueryDescendants<T>().FirstOrDefault());
+        public static RxRef<T> Child<T>(this Component c, ref RxRef<T> value) where T : Component => value = value != null ? value : c.Child<T>();
 
-        public static RxRef<T> Child<T>(this Component c) where T : Component => new(c.GetComponentsInChildren<T>().FirstOrDefault(o => o != c));
-        public static RxRef<T> Child<T>(this Component c, ref RxRef<T> value) where T : Component => value != null ? value : c.Child<T>();
+        public static IReadOnlyCollection<T> Children<T>(this Component c, ref IReadOnlyCollection<T> value) where T : Component
+        {
+            if (c is ILazy<T> rdy) rdy.Ready();
+            if (value != null)
+            {
+                // do we need to check for changes in children here?
+                return value;
+            }
+            return value = c.QueryDescendants<T>().ToList();
+        }
+
+        public static RxRef<T> Parent<T>(this Component c) where T : Component => new(c.QueryAncestors<T>().FirstOrDefault());
+        public static RxRef<T> Parent<T>(this Component c, ref RxRef<T> value) where T : Component => value = value != null ? value : c.Parent<T>();
 
         public static RxRef<T> Scene<T>(this Component c, ref RxRef<T> value, Func<T, bool> filter) where T : Component
         {
+            if (c is ILazy<T> rdy) rdy.Ready();
             if (value != null) return value;
-            if (c is IInit i) i.Init();
-            return c.Child<T>();
+            return value = new (c.QueryScene<T>().FirstOrDefault());
         }
-
-        public static RxRef<T> Parent<T>(this Component c) where T : Component => new(c.GetComponentsInParent<T>().FirstOrDefault(o => o != c));
-        public static RxRef<T> Parent<T>(this Component c, ref RxRef<T> value) where T : Component => value != null ? value : c.Parent<T>();
 
         public static RxRef<T> Rx<T>(this T target) where T : Component => new(target); //
     }

@@ -1,58 +1,61 @@
 ﻿using R3;
 using UnityEngine;
 
-public class EventHandler : MonoBehaviour
+namespace Toolbox.ReactiveMechanics
 {
-    private ClickMechanic[] clickMechanics;
-    private ReactiveMechanic<DoubleClickMechanic.Event, MouseInputFrame>[] doubleClickMechanics;
-    private ReactiveMechanic<LongPressMechanic.Event, MouseInputFrame>[] longPressMechanics;
-    private ReactiveMechanic<DragMechanic.Event, MouseInputFrame>[] dragMechanics;
-
-    private void Start()
+    public class EventHandler : MonoBehaviour
     {
-        clickMechanics = GetComponents<ClickMechanic>();
-        doubleClickMechanics = GetComponents<ReactiveMechanic<DoubleClickMechanic.Event, MouseInputFrame>>();
-        longPressMechanics = GetComponents<ReactiveMechanic<LongPressMechanic.Event, MouseInputFrame>>();
-        dragMechanics = GetComponents<ReactiveMechanic<DragMechanic.Event, MouseInputFrame>>();
+        private ClickMechanic[] clickMechanics;
+        private ReactiveMechanic<DoubleClickMechanic.Event, MouseInputFrame>[] doubleClickMechanics;
+        private ReactiveMechanic<LongPressMechanic.Event, MouseInputFrame>[] longPressMechanics;
+        private ReactiveMechanic<DragMechanic.Event, MouseInputFrame>[] dragMechanics;
 
-        foreach (var mechanic in clickMechanics)
+        private void Start()
         {
-            mechanic.Observable.Subscribe(HandleClickEvent);
+            clickMechanics = GetComponents<ClickMechanic>();
+            doubleClickMechanics = GetComponents<ReactiveMechanic<DoubleClickMechanic.Event, MouseInputFrame>>();
+            longPressMechanics = GetComponents<ReactiveMechanic<LongPressMechanic.Event, MouseInputFrame>>();
+            dragMechanics = GetComponents<ReactiveMechanic<DragMechanic.Event, MouseInputFrame>>();
+
+            foreach (var mechanic in clickMechanics)
+            {
+                mechanic.Observable.Subscribe(HandleClickEvent);
+            }
+
+            foreach (var mechanic in doubleClickMechanics)
+            {
+                mechanic.Observable.Subscribe(HandleDoubleClickEvent);
+            }
+
+            foreach (var mechanic in longPressMechanics)
+            {
+                mechanic.Observable.Subscribe(HandleLongPressEvent);
+            }
+
+            foreach (var mechanic in dragMechanics)
+            {
+                mechanic.Observable.Subscribe(HandleDragEvent);
+            }
         }
 
-        foreach (var mechanic in doubleClickMechanics)
+        private void HandleClickEvent(ClickMechanic.Event clickEvent)
         {
-            mechanic.Observable.Subscribe(HandleDoubleClickEvent);
+            Debug.Log("Click event triggered at position: " + clickEvent.ClickPosition);
         }
 
-        foreach (var mechanic in longPressMechanics)
+        private void HandleDoubleClickEvent(DoubleClickMechanic.Event doubleClickEvent)
         {
-            mechanic.Observable.Subscribe(HandleLongPressEvent);
+            Debug.Log("Double-click event triggered at position: " + doubleClickEvent.DoubleClickPosition);
         }
 
-        foreach (var mechanic in dragMechanics)
+        private void HandleLongPressEvent(LongPressMechanic.Event longPressEvent)
         {
-            mechanic.Observable.Subscribe(HandleDragEvent);
+            Debug.Log("Long press event triggered at position: " + longPressEvent.LongPressPosition);
         }
-    }
 
-    private void HandleClickEvent(ClickMechanic.Event clickEvent)
-    {
-        Debug.Log("Click event triggered at position: " + clickEvent.ClickPosition);
-    }
-
-    private void HandleDoubleClickEvent(DoubleClickMechanic.Event doubleClickEvent)
-    {
-        Debug.Log("Double-click event triggered at position: " + doubleClickEvent.DoubleClickPosition);
-    }
-
-    private void HandleLongPressEvent(LongPressMechanic.Event longPressEvent)
-    {
-        Debug.Log("Long press event triggered at position: " + longPressEvent.LongPressPosition);
-    }
-
-    private void HandleDragEvent(DragMechanic.Event dragEvent)
-    {
-        Debug.Log($"Drag event triggered from {dragEvent.DragEndPosition} to {dragEvent.DragEndPosition}");
+        private void HandleDragEvent(DragMechanic.Event dragEvent)
+        {
+            Debug.Log($"Drag event triggered from {dragEvent.DragEndPosition} to {dragEvent.DragEndPosition}");
+        }
     }
 }

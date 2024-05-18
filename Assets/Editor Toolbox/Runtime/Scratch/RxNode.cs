@@ -1,90 +1,78 @@
 ﻿using System;
+using System.Collections.Generic;
 using R3;
 using UnityEngine;
 
-public class RxNode : MonoBehaviour
+namespace Toolbox.RxTree
 {
-    public Observable<EventData> EventStream => _eventSubject;
-
-    private readonly Subject<EventData> _eventSubject = new Subject<EventData>();
-    protected readonly CompositeDisposable _disposables = new CompositeDisposable();
-
-    protected virtual void OnEvent(EventData eventData)
+    public class RxTreeNode : MonoBehaviour, ILazy<RxTreeNode>
     {
-        // Default implementation: Propagate the event up the hierarchy
-        _eventSubject.OnNext(eventData);
-    }
+        private RxRef<RxTreeNode> _parent;
+        public RxRef<RxTreeNode> Parent => Ready().Parent(ref _parent);
 
-    protected virtual void OnDestroy()
-    {
-        _disposables.Dispose();
-    }
+        private IReadOnlyCollection<RxTreeNode> _children;
+        public IReadOnlyCollection<RxTreeNode> Children => Ready().Children(ref _children);
 
-    protected void EmitEvent(string eventName, object eventData = null)
-    {
-        var eventWrapper = new EventData(eventName, eventData);
-        OnEvent(eventWrapper);
-    }
-}
+        private bool _ready;
 
-public class ParentNode : RxNode
-{
-    protected override void OnEvent(EventData eventData)
-    {
-        // Customize event handling or wrapping before propagating up the hierarchy
-        if (eventData.EventName == "ChildEvent")
+        public RxTreeNode Ready()
         {
-            // Wrap the child event with additional details
-            var wrappedEventData = new EventData("ParentEvent", new { ChildData = eventData.Data, AdditionalData = "Parent Data" });
-            base.OnEvent(wrappedEventData);
-        }
-        else
-        {
-            // Propagate other events without modification
-            base.OnEvent(eventData);
+            if (_ready) return this;
+            _ready = true;
+            // DoStuff();
+            return this;
         }
     }
 
-    private void Start()
+    public class RxConverter<TSource, TOutput> : ISubject<TOutput>, IDisposable
     {
-        void OnNext(EventData eventData)
+        private readonly Observable<TSource> _source;
+        private readonly IDisposable _sourceSubscription;
+        private readonly ReactiveProperty<TOutput> _property = new();
+
+        public RxConverter(Observable<TSource> source, Func<TSource, TOutput> converter)
         {
-            // Handle child events or make decisions based on the event
-            Debug.Log($"Received event from child: {eventData.EventName}");
-            OnEvent(eventData);
+            _source = source;
+            _sourceSubscription = source.Subscribe(n => OnNext(converter(n)), OnErrorResume, OnCompleted);
         }
 
-        // Subscribe to child node events
-        foreach (var childNode in GetComponentsInChildren<RxNode>())
+        public void Dispose()
         {
-            if (childNode == this) continue;
-
-            childNode.EventStream
-                .Subscribe(OnNext)
-                .AddTo(_disposables);
+            _property.Dispose();
+            _sourceSubscription?.Dispose();
         }
+
+        public IDisposable Subscribe(Observer<TOutput> observer) => _property.Subscribe(observer);
+        public void OnNext(TOutput value) => _property.OnNext(value);
+        public void OnErrorResume(Exception exception) => _property.OnErrorResume(exception);
+        public void OnCompleted(Result result) => _property.OnCompleted(result);
+
+        public TOutput Value => _property.Value;
+        public bool HasObservers => _property.HasObservers;
+        public bool IsCompleted => _property.IsCompleted;
+        public bool IsDisposed => _property.IsDisposed;
+        public bool IsCompletedOrDisposed => _property.IsCompletedOrDisposed;
     }
-}
 
-public class ChildNode : RxNode
-{
-    private void Start()
+    public class RxConverterProperty<TSource, TOutput> : ReactiveProperty<TOutput>
     {
-        // Emit a child event after a delay
-        Observable.Timer(TimeSpan.FromSeconds(2))
-            .Subscribe(_ => EmitEvent("ChildEvent", "Child Data"))
-            .AddTo(_disposables);
+        private readonly IDisposable _sourceSubscription;
+
+        public RxConverterProperty(Observable<TSource> source, Func<TSource, TOutput> converter)
+        {
+            _sourceSubscription = source.Subscribe(s => Value = converter.Invoke(s), OnErrorResume, OnCompleted);
+        }
+
+        protected override void DisposeCore() => _sourceSubscription?.Dispose();
     }
-}
 
-public class EventData
-{
-    public string EventName { get; }
-    public object Data { get; }
-
-    public EventData(string eventName, object data)
+    public class SerializableRxConverterProperty<TSource, TOutput> : SerializableReactiveProperty<TOutput>
     {
-        EventName = eventName;
-        Data = data;
+        private readonly IDisposable _sourceSubscription;
+
+        public SerializableRxConverterProperty(Observable<TSource> source, Func<TSource, TOutput> converter) =>
+            _sourceSubscription = source.Subscribe(s => Value = converter.Invoke(s), OnErrorResume, OnCompleted);
+
+        protected override void DisposeCore() => _sourceSubscription?.Dispose();
     }
 }
