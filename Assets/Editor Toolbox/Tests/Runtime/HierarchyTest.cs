@@ -28,7 +28,7 @@ namespace Toolbox
         {
             _collider = null;
 
-            _collider = this.GetDescendants<Collider>().First();
+            _collider = this.QueryDescendants<Collider>().First();
 
             if (!A || !B || !C) return;
 

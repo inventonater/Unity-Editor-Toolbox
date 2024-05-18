@@ -2,7 +2,8 @@
     "name": "Toolbox",
     "references": [
       "R3.Unity",
-      "UniTask"
+      "UniTask",
+      "UniTask.Linq"
     ],
     "optionalUnityReferences": [],
     "includePlatforms": [],
