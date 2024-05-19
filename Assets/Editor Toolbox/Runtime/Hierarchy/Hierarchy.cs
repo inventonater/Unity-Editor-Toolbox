@@ -6,7 +6,6 @@ using Component = UnityEngine.Component;
 
 namespace Toolbox
 {
-
     public enum HierarchySearchOrder
     {
         None,
@@ -122,7 +121,7 @@ namespace Toolbox
             return depth;
         }
 
-        public static T Sort<T>(T a, T b,HierarchySearchOrder searchOrder) where T : Component
+        public static T Sort<T>(T a, T b, HierarchySearchOrder searchOrder) where T : Component
         {
             if (searchOrder == HierarchySearchOrder.FirstInHierarchy) return CompareBreadthFirst(a, b) < 0 ? a : b;
             if (searchOrder == HierarchySearchOrder.LastInHierarchy) return CompareBreadthFirst(a, b) < 0 ? b : a;

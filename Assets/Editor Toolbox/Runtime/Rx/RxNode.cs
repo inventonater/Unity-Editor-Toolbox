@@ -8,7 +8,7 @@ namespace Toolbox.RxTree
     public class RxTreeNode : MonoBehaviour, ILazy<RxTreeNode>
     {
         private RxRef<RxTreeNode> _parent;
-        public RxRef<RxTreeNode> Parent => Ready().Parent(ref _parent);
+        public RxRef<RxTreeNode> Parent => Ready().Ancestor(ref _parent);
 
         private IReadOnlyCollection<RxTreeNode> _children;
         public IReadOnlyCollection<RxTreeNode> Children => Ready().Children(ref _children);

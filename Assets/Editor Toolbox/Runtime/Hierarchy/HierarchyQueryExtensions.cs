@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using static Toolbox.ETraversalAlgorithm;
 
@@ -22,6 +23,11 @@ namespace Toolbox
         public static HierarchyQuery<T> QueryDescendants<T>(this Component component) where T : Component
         {
             return component.Query<T>(DescendantsBreadthFirst);
+        }
+
+        public static HierarchyQuery<T> QueryChildren<T>(this Component component) where T : Component
+        {
+            return component.Query<T>(ImmediateChildren);
         }
 
         public static HierarchyQuery<T> QueryScene<T>(this Component component) where T : Component

@@ -9,7 +9,7 @@ namespace Toolbox
     /// <summary>
     /// Provides extension methods for file system operations.
     /// </summary>
-    public static class ExtensionsFileSystem
+    public static class FileSystem
     {
         /// <summary>
         /// Combines and expands the specified file paths.
@@ -52,7 +52,7 @@ namespace Toolbox
             try
             {
                 var files = Directory.GetFiles(folderPath);
-                var mostRecentFile = files.OrderByDescending(f => File.GetLastWriteTime(f)).FirstOrDefault();
+                var mostRecentFile = files.OrderByDescending(File.GetLastWriteTime).FirstOrDefault();
                 return mostRecentFile;
             }
             catch (Exception ex)

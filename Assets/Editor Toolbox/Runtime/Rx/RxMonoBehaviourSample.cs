@@ -21,7 +21,7 @@ namespace Toolbox
         public RxValue<Vector3> Position => new(() => transform.position, v => transform.position = v);
 
         private RxRef<Canvas> _parentCanvas;
-        public RxRef<Canvas> ParentCanvas => I.Parent(ref _parentCanvas);
+        public RxRef<Canvas> ParentCanvas => I.Ancestor(ref _parentCanvas);
 
         private RxRef<Transform> _reallyComplex;
         public RxRef<Transform> SuperComplex => _reallyComplex ??= this.QueryDescendants<Transform>()
@@ -46,7 +46,7 @@ namespace Toolbox
         public Observer<Transform> UpdateParentCanvasTransform { get; set; }
 
         private RxRef<Canvas> _childCanvas;
-        public RxRef<Canvas> ChildCanvas => this.Child(ref _childCanvas);
+        public RxRef<Canvas> ChildCanvas => this.Descendant(ref _childCanvas);
 
 
         private RxRef<Transform> _calledHeya;

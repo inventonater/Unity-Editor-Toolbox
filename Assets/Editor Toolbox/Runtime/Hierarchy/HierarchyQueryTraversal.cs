@@ -51,13 +51,14 @@ namespace Toolbox
                 while (_queue.Count > 0)
                 {
                     var current = _queue.Dequeue();
-                    for (int i = 0; i < current.childCount; i++)
-                    {
-                        _queue.Enqueue(current.GetChild(i));
-                    }
                     foreach (var component in query.VisitComponents(current))
                     {
                         yield return component;
+                    }
+
+                    for (int i = 0; i < current.childCount; i++)
+                    {
+                        _queue.Enqueue(current.GetChild(i));
                     }
                 }
             }
@@ -65,22 +66,23 @@ namespace Toolbox
 
         public class DescendantsDepthFirst : ITraversalAlgorithm<T>
         {
-            private readonly Stack<Transform> _stack = new();
-
             public IEnumerable<T> Traverse(HierarchyQuery<T> query)
             {
-                _stack.Clear();
-                _stack.Push(query.Origin.transform);
-                while (_stack.Count > 0)
+                return TraverseRecursive(query.Origin.transform);
+
+                IEnumerable<T> TraverseRecursive(Transform current)
                 {
-                    var current = _stack.Pop();
                     foreach (var component in query.VisitComponents(current))
                     {
                         yield return component;
                     }
-                    for (int i = current.childCount - 1; i >= 0; i--)
+
+                    for (int i = 0; i < current.childCount; i++)
                     {
-                        _stack.Push(current.GetChild(i));
+                        foreach (var component in TraverseRecursive(current.GetChild(i)))
+                        {
+                            yield return component;
+                        }
                     }
                 }
             }
@@ -101,22 +103,20 @@ namespace Toolbox
 
         public class AncestorsTopDown : ITraversalAlgorithm<T>
         {
-            private readonly List<Transform> _ancestorsCache = new();
-
             public IEnumerable<T> Traverse(HierarchyQuery<T> query)
             {
-                var current = query.Origin.transform;
-                _ancestorsCache.Clear();
+                return TraverseRecursive(query.Origin.transform);
 
-                while (current != null)
+                IEnumerable<T> TraverseRecursive(Transform current)
                 {
-                    _ancestorsCache.Add(current);
-                    current = current.parent;
-                }
+                    if (current.parent != null)
+                    {
+                        foreach (var component in TraverseRecursive(current.parent))
+                        {
+                            yield return component;
+                        }
+                    }
 
-                for (int i = _ancestorsCache.Count - 1; i >= 0; i--)
-                {
-                    current = _ancestorsCache[i];
                     foreach (var component in query.VisitComponents(current))
                     {
                         yield return component;
@@ -129,8 +129,18 @@ namespace Toolbox
         {
             public IEnumerable<T> Traverse(HierarchyQuery<T> query)
             {
-                var sameLevel = query.Origin.transform.parent != null ? query.Origin.transform.parent.Cast<Transform>() : Hierarchy.GetRootGameObject();
-                foreach (Transform current in sameLevel)
+                IEnumerable<Transform> sameLevelNodes;
+                if (query.Origin.transform.parent == null)
+                {
+                    sameLevelNodes = Hierarchy.GetRootGameObject();
+                }
+                else
+                {
+                    // the Cast<> creates an IEnumerable from the parent's children
+                    sameLevelNodes = query.Origin.transform.parent.Cast<Transform>();
+                }
+
+                foreach (Transform current in sameLevelNodes)
                 {
                     foreach (var component in query.VisitComponents(current)) yield return component;
                 }
@@ -139,9 +149,14 @@ namespace Toolbox
 
         public class Compound : ITraversalAlgorithm<T>
         {
-            private readonly ITraversalAlgorithm<T>[] _traversals;
+            private readonly List<ITraversalAlgorithm<T>> _traversals;
+            public IReadOnlyCollection<ITraversalAlgorithm<T>> Traversals => _traversals;
 
-            public Compound(params ITraversalAlgorithm<T>[] traversals) => _traversals = traversals;
+            public Compound(params ITraversalAlgorithm<T>[] traversals) => _traversals = traversals.ToList();
+            public void Add(ITraversalAlgorithm<T> traversal) => _traversals.Add(traversal);
+            public void Insert(int index, ITraversalAlgorithm<T> traversal) => _traversals.Insert(index, traversal);
+            public void Remove(ITraversalAlgorithm<T> traversal) => _traversals.Remove(traversal);
+            public void Clear() => _traversals.Clear();
 
             public IEnumerable<T> Traverse(HierarchyQuery<T> query)
             {
@@ -156,7 +171,7 @@ namespace Toolbox
         {
             public IEnumerable<T> Traverse(HierarchyQuery<T> query)
             {
-                var inScene = GameObject.FindObjectsOfType<T>(includeInactive: true);
+                var inScene = GameObject.FindObjectsOfType<T>(includeInactive: true); // is there a better way?  manually traverse from roots?
                 foreach (var component in inScene)
                 {
                     if (query.QueryTraversal.ShouldSkip(component.gameObject)) continue;

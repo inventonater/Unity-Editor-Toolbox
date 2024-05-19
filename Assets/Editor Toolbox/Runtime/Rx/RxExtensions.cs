@@ -71,8 +71,13 @@ namespace R3 // Keep the R3 namespace to ensure ExtensionMethods are always avai
 
     public static class RxExtensions
     {
-        public static RxRef<T> Child<T>(this Component c) where T : Component => new(c.QueryDescendants<T>().FirstOrDefault());
-        public static RxRef<T> Child<T>(this Component c, ref RxRef<T> value) where T : Component => value = value != null ? value : c.Child<T>();
+        public static RxRef<T> Rx<T>(this T target) where T : Component => new(target); //
+
+        public static RxRef<T> Descendant<T>(this Component c) where T : Component => new(c.QueryDescendants<T>().FirstOrDefault());
+        public static RxRef<T> Descendant<T>(this Component c, ref RxRef<T> value) where T : Component => value = value != null ? value : c.Descendant<T>();
+
+        public static RxRef<T> Ancestor<T>(this Component c) where T : Component => new(c.QueryAncestors<T>().FirstOrDefault());
+        public static RxRef<T> Ancestor<T>(this Component c, ref RxRef<T> value) where T : Component => value = value != null ? value : c.Ancestor<T>();
 
         public static IReadOnlyCollection<T> Children<T>(this Component c, ref IReadOnlyCollection<T> value) where T : Component
         {
@@ -82,11 +87,8 @@ namespace R3 // Keep the R3 namespace to ensure ExtensionMethods are always avai
                 // do we need to check for changes in children here?
                 return value;
             }
-            return value = c.QueryDescendants<T>().ToList();
+            return value = c.QueryChildren<T>().ToList();
         }
-
-        public static RxRef<T> Parent<T>(this Component c) where T : Component => new(c.QueryAncestors<T>().FirstOrDefault());
-        public static RxRef<T> Parent<T>(this Component c, ref RxRef<T> value) where T : Component => value = value != null ? value : c.Parent<T>();
 
         public static RxRef<T> Scene<T>(this Component c, ref RxRef<T> value, Func<T, bool> filter) where T : Component
         {
@@ -94,7 +96,5 @@ namespace R3 // Keep the R3 namespace to ensure ExtensionMethods are always avai
             if (value != null) return value;
             return value = new (c.QueryScene<T>().FirstOrDefault());
         }
-
-        public static RxRef<T> Rx<T>(this T target) where T : Component => new(target); //
     }
 }
