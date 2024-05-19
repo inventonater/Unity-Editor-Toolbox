@@ -18,9 +18,9 @@ namespace Toolbox
         AncestorsTopDown,
         SameTreeLevel,
         Compound,
-        TraverseFindObjectsOfType
+        TraverseFindObjectsOfType,
+        ImmediateChildren
     }
-
 
     public static class HierarchyQueryTraversal<T> where T : Component
     {
@@ -35,6 +35,7 @@ namespace Toolbox
                 ETraversalAlgorithm.SameTreeLevel => new SameTreeLevel(),
                 ETraversalAlgorithm.Compound => new Compound(),
                 ETraversalAlgorithm.TraverseFindObjectsOfType => new FindObjectsOfType(),
+                ETraversalAlgorithm.ImmediateChildren => new ImmediateChildren(),
                 _ => throw new ArgumentOutOfRangeException()
             };
         }
@@ -161,6 +162,22 @@ namespace Toolbox
                     if (query.QueryTraversal.ShouldSkip(component.gameObject)) continue;
                     if (query.QueryTraversal.ShouldSkip(component)) continue;
                     if (query.Filter.MatchesFilters(query.Origin, component)) yield return component;
+                }
+            }
+        }
+
+        public class ImmediateChildren : ITraversalAlgorithm<T>
+        {
+            public IEnumerable<T> Traverse(HierarchyQuery<T> query)
+            {
+                var current = query.Origin.transform;
+                for (int i = 0; i < current.childCount; i++)
+                {
+                    var child = current.GetChild(i);
+                    foreach (var component in query.VisitComponents(child))
+                    {
+                        yield return component;
+                    }
                 }
             }
         }
