@@ -1,16 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
+using static Toolbox.Hierarchy;
 
 namespace Toolbox
 {
     [Serializable]
     public class HierarchyPublisher<T> where T : MonoBehaviour
     {
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
-        private static void CheckStaticReload() => _all.Clear();
         private static List<HierarchyPublisher<T>> _all = new();
         public static IReadOnlyList<HierarchyPublisher<T>> All => _all;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
+        private static void CheckStaticReload() => _all.Clear();
 
         private T _publisher;
 
@@ -41,10 +43,11 @@ namespace Toolbox
     [Serializable]
     public class HierarchySubscriber<T> where T : MonoBehaviour
     {
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
-        private static void CheckStaticReload() => _all.Clear();
         private static List<HierarchySubscriber<T>> _all = new();
         public static IReadOnlyList<HierarchySubscriber<T>> All => _all;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
+        private static void CheckStaticReload() => _all.Clear();
 
         [SerializeField] public RelationFlags _relationFlags = RelationFlags.Ancestor;
         [SerializeField] private List<T> _publishers = new();

@@ -1,32 +1,14 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
+using static Toolbox.Hierarchy;
 
 namespace Toolbox
 {
     public static class EnsureIn
     {
-        private static readonly IReadOnlyDictionary<RelationFlags, Func<Component, Type, Component>> SearchFunctions = new Dictionary<RelationFlags, Func<Component, Type, Component>>()
-        {
-            { RelationFlags.Sibling, (searcher, type) => searcher.GetComponent(type) },
-            { RelationFlags.Parent, (searcher, type) => searcher.transform.parent.GetComponent(type) },
-            { RelationFlags.Child, (searcher, type) => GetFirstChildComponent(searcher, type) },
-            { RelationFlags.Ancestor, (searcher, type) => searcher.GetComponentInParent(type) },
-            { RelationFlags.Descendant, (searcher, type) => searcher.GetComponentInChildren(type, true) }
-        };
-
-        private static Component GetFirstChildComponent(Component searcher, Type type)
-        {
-            for (int i = 0; i < searcher.transform.childCount; i++)
-            {
-                var child = searcher.transform.GetChild(i);
-                var component = child.GetComponent(type);
-                if (component != null) return component;
-            }
-            return null;
-        }
-
         public static T Ensure<T>(this Component searcher, ref T field, Relation relation = Relation.Sibling, RelationFlags searchFlags = RelationFlags.None, Type defaultType = null) where T : Component
         {
             if (field != null) return field;
@@ -49,6 +31,7 @@ namespace Toolbox
             return TryCreate<T>(searcher, relation, defaultType, out result) ? result : null;
         }
 
+        // reimplement this with Rx
         public static IEnumerator WaitForDependency<T>(Component searcher, RelationFlags search, float timeout = 10f) where T : Component
         {
             float startTime = Time.time;
@@ -71,15 +54,27 @@ namespace Toolbox
 
         public static T Search<T>(this Component searcher, RelationFlags search) where T : Component
         {
+            var compoundAlgorithm = new HierarchyQueryAlgorithm<T>.Compound();
+
             foreach (var flag in search.GetFlags())
             {
-                if (!SearchFunctions.TryGetValue(flag, out var searchFunction)) continue;
+                // should use a specific algorithm here.. Descendants is not specific enough?
+                if (!SearchAlgorithms.TryGetValue(flag, out var foundAlgorithm)) continue;
 
-                var result = searchFunction(searcher, typeof(T)) as T;
-                if (result != null) return result;
+                // todo need to manage order of algorithm execution somehow
+                compoundAlgorithm.Add(foundAlgorithm);
             }
 
-            return null;
+            var query = new Query<T>(searcher, algorithm);
+            return query.FirstOrDefault();
+
+            // foreach (var flag in search.GetFlags())
+            // {
+            //     if (!SearchFunctions.TryGetValue(flag, out var searchFunction)) continue;
+            //     var result = searchFunction(searcher, typeof(T)) as T;
+            //     if (result != null) return result;
+            // }
+            // return null;
         }
 
         private static bool TryCreate<T>(Component searcher, Relation relation, Type defaultType, out T result) where T : Component

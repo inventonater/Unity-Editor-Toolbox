@@ -6,45 +6,65 @@ using Component = UnityEngine.Component;
 
 namespace Toolbox
 {
-    public enum HierarchySearchOrder
-    {
-        None,
-        FirstInHierarchy,
-        LastInHierarchy,
-        RenderFirst,
-        RenderLast
-    }
-
-    public enum Relation
-    {
-        None,
-        Sibling,
-        Parent,
-        Child,
-        Descendant,
-        Ancestor,
-        Scene,
-    }
-
-    [Flags]
-    public enum RelationFlags
-    {
-        None = 1 << Relation.None,
-        Sibling = 1 << Relation.Sibling,
-        Parent = 1 << Relation.Parent,
-        Child = 1 << Relation.Child,
-        Descendant = 1 << Relation.Descendant,
-        Ancestor = 1 << Relation.Ancestor,
-        Scene = 1 << Relation.Scene,
-
-        SiblingParent = Sibling | Parent,
-        SiblingChild = Sibling | Child,
-        SiblingDescendant = Sibling | Descendant,
-        SiblingAncestor = Sibling | Ancestor,
-    }
-
     public static class Hierarchy
     {
+        public enum HierarchySortRules
+        {
+            None,
+            FirstInHierarchy,
+            LastInHierarchy,
+            RenderFirst,
+            RenderLast
+        }
+
+        public enum Relation
+        {
+            None,
+            Sibling,
+            Parent,
+            Child,
+            Descendant,
+            Ancestor,
+            Scene,
+        }
+
+        [Flags]
+        public enum RelationFlags
+        {
+            None = 1 << Relation.None,
+            Sibling = 1 << Relation.Sibling,
+            Parent = 1 << Relation.Parent,
+            Child = 1 << Relation.Child,
+            Descendant = 1 << Relation.Descendant,
+            Ancestor = 1 << Relation.Ancestor,
+            Scene = 1 << Relation.Scene,
+
+            SiblingParent = Sibling | Parent,
+            SiblingChild = Sibling | Child,
+            SiblingDescendant = Sibling | Descendant,
+            SiblingAncestor = Sibling | Ancestor,
+        }
+
+        private static readonly IReadOnlyDictionary<RelationFlags, Func<Component, Type, Component>> SearchFunctions = new Dictionary<RelationFlags, Func<Component, Type, Component>>()
+        {
+            { RelationFlags.Sibling, (searcher, type) => searcher.GetComponent(type) },
+            { RelationFlags.Parent, (searcher, type) => searcher.transform.parent.GetComponent(type) },
+            { RelationFlags.Child, (searcher, type) => GetFirstChildComponent(searcher, type) },
+            { RelationFlags.Ancestor, (searcher, type) => searcher.GetComponentInParent(type) },
+            { RelationFlags.Descendant, (searcher, type) => searcher.GetComponentInChildren(type, true) }
+        };
+
+        private static Component GetFirstChildComponent(Component searcher, Type type)
+        {
+            for (int i = 0; i < searcher.transform.childCount; i++)
+            {
+                var child = searcher.transform.GetChild(i);
+                var component = child.GetComponent(type);
+                if (component != null) return component;
+            }
+            return null;
+        }
+
         public static IEnumerable<Transform> GetRootGameObject()
         {
             return UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects().Select(go => go.transform);
@@ -105,9 +125,6 @@ namespace Toolbox
             return false;
         }
 
-        private static readonly Stack<Transform> _ancestryA = new();
-        private static readonly Stack<Transform> _ancestryB = new();
-
         public static int GetDepth(Component a)
         {
             int depth = 0;
@@ -121,12 +138,12 @@ namespace Toolbox
             return depth;
         }
 
-        public static T Sort<T>(T a, T b, HierarchySearchOrder searchOrder) where T : Component
+        public static T Sort<T>(T a, T b, HierarchySortRules sortRules) where T : Component
         {
-            if (searchOrder == HierarchySearchOrder.FirstInHierarchy) return CompareBreadthFirst(a, b) < 0 ? a : b;
-            if (searchOrder == HierarchySearchOrder.LastInHierarchy) return CompareBreadthFirst(a, b) < 0 ? b : a;
-            if (searchOrder == HierarchySearchOrder.RenderFirst) return CompareInspectorOrder(a, b) < 0 ? a : b;
-            if (searchOrder == HierarchySearchOrder.RenderLast) return CompareInspectorOrder(a, b) < 0 ? b : a;
+            if (sortRules == HierarchySortRules.FirstInHierarchy) return CompareBreadthFirst(a, b) < 0 ? a : b;
+            if (sortRules == HierarchySortRules.LastInHierarchy) return CompareBreadthFirst(a, b) < 0 ? b : a;
+            if (sortRules == HierarchySortRules.RenderFirst) return CompareInspectorOrder(a, b) < 0 ? a : b;
+            if (sortRules == HierarchySortRules.RenderLast) return CompareInspectorOrder(a, b) < 0 ? b : a;
             Debug.LogWarning("Hierarchy.Find cannot use SearchOrder.None");
             return a;
         }
@@ -141,6 +158,9 @@ namespace Toolbox
         }
 
         private const bool DebugLog = false;
+
+        private static readonly Stack<Transform> _ancestryA = new();
+        private static readonly Stack<Transform> _ancestryB = new();
 
         // -1: a renders behind b.
         // 1: a renders after b.

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using static Toolbox.Hierarchy.HierarchySortRules;
 
 namespace Toolbox
 {
@@ -35,11 +36,11 @@ namespace Toolbox
             _inspectorOrderCompare = Hierarchy.CompareInspectorOrder(A.transform, B.transform);
             _breadthFirstCompare = Hierarchy.CompareBreadthFirst(A.transform, B.transform);
 
-            _shallowest = Hierarchy.Sort(A, B, HierarchySearchOrder.FirstInHierarchy);
-            _deepest = Hierarchy.Sort(A, B, HierarchySearchOrder.LastInHierarchy);
+            _shallowest = Hierarchy.Sort(A, B, FirstInHierarchy);
+            _deepest = Hierarchy.Sort(A, B, LastInHierarchy);
 
-            _renderFirst = Hierarchy.Sort(A, B, HierarchySearchOrder.RenderFirst);
-            _renderLast = Hierarchy.Sort(A, B, HierarchySearchOrder.RenderLast);
+            _renderFirst = Hierarchy.Sort(A, B, RenderFirst);
+            _renderLast = Hierarchy.Sort(A, B, RenderLast);
 
             _aDepth = Hierarchy.GetDepth(A);
             _bDepth = Hierarchy.GetDepth(B);
