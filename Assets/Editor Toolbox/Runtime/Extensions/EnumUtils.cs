@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using UnityEngine;
 
 namespace Toolbox
 {
@@ -11,50 +12,101 @@ namespace Toolbox
     /// </summary>
     public static class EnumUtils
     {
-        /// <summary>
-        /// Converts an enumeration value to an unsigned long integer (ulong).
-        /// </summary>
-        /// <typeparam name="T">The type of the enumeration.</typeparam>
-        /// <param name="enumValue">The enumeration value to convert.</param>
-        /// <returns>The enumeration value as an unsigned long integer.</returns>
-        private static ulong ToUInt64<T>(this T enumValue) where T : struct, Enum
+        private static int ToInt<T>(this T enumValue) where T : struct, Enum
         {
-            return Convert.ToUInt64(enumValue);
+            return Convert.ToInt32(enumValue);
         }
 
-        /// <summary>
-        /// Converts a 64-bit unsigned integer to an enum value of type T.
-        /// </summary>
-        /// <typeparam name="T">The type of the enum.</typeparam>
-        /// <param name="value">The 64-bit unsigned integer value to convert.</param>
-        /// <returns>The enum value corresponding to the unsigned integer value.</returns>
-        public static T FromUInt64<T>(ulong value) where T : struct, Enum
+        public static T FromInt<T>(int value) where T : struct, Enum
         {
             return (T)Enum.ToObject(typeof(T), value);
         }
 
-        // Flag Operations
-        private static readonly Dictionary<Type, IReadOnlyCollection<string>> _enumNamesCache = new Dictionary<Type, IReadOnlyCollection<string>>();
-
-        /// <summary>
-        /// Gets the flags contained in the specified enumeration value.
-        /// </summary>
-        /// <typeparam name="T">The type of the enumeration.</typeparam>
-        /// <param name="enumValue">The enumeration value.</param>
-        /// <returns>An IEnumerable of type T containing the flags.</returns>
-        public static IEnumerable<T> GetFlags<T>(this T enumValue) where T : struct, Enum
+        public static IEnumerable<TFlag> GetFlags<TFlag>(this TFlag flagsValue) where TFlag : struct, Enum
         {
-            if (!_enumNamesCache.TryGetValue(typeof(T), out var enumNames))
-            {
-                enumNames = Enum.GetNames(typeof(T)).ToList();
-                _enumNamesCache[typeof(T)] = enumNames;
-            }
+            if (!typeof(TFlag).IsDefined(typeof(FlagsAttribute), false)) throw new ArgumentException($"The type {nameof(TFlag)} is not a [Flags] enum.");
 
-            foreach (var name in enumNames)
+            foreach (var enumValue in GetValues<TFlag>())
             {
-                if (Enum.TryParse(name, out T value) && enumValue.HasFlag(value))
+                if (flagsValue.HasFlag(enumValue)) yield return enumValue;
+            }
+        }
+
+        public static TEnum ToEnum<TEnum>(this string name)
+            where TEnum : struct, Enum
+        {
+            if (!Enum.TryParse(name, ignoreCase: false, out TEnum result))
+                throw new ArgumentException($"The value '{name}' is not a valid member of the '{nameof(TEnum)}' enum.");
+
+            return result;
+        }
+
+        public static string ToName<TEnum>(this TEnum value)
+            where TEnum : struct, Enum
+        {
+            return Enum.GetName(typeof(TEnum), value);
+        }
+
+        public static IEnumerable<TEnum> FlagsToEnumValues<TFlag, TEnum>(this TFlag flags)
+            where TFlag : struct, Enum
+            where TEnum : struct, Enum
+        {
+            if (!typeof(TFlag).IsDefined(typeof(FlagsAttribute), false)) throw new ArgumentException($"The type {nameof(TFlag)} is not a [Flags] enum.");
+
+            foreach (TFlag value in flags.GetFlags())
+            {
+                var flagName = PrecomputedEnumValues<TFlag>.ValuesToNames[value];
+                if (PrecomputedEnumValues<TEnum>.NamesToValues.TryGetValue(flagName, out TEnum enumValue))
                 {
-                    yield return value;
+                    yield return enumValue;
+                }
+                else
+                {
+                    throw new ArgumentException($"{nameof(TFlag)}.{flagName} could not be converted to {nameof(TEnum)}.");
+                }
+            }
+        }
+
+        public static TFlag EnumValueToFlag<TEnum, TFlag>(this TEnum enumValue) where TEnum : struct, Enum where TFlag : struct, Enum
+        {
+            var enumName = PrecomputedEnumValues<TEnum>.ValuesToNames[enumValue];
+            if (!PrecomputedEnumValues<TFlag>.NamesToValues.TryGetValue(enumName, out TFlag flagValue))
+                throw new ArgumentException($"{typeof(TEnum)}.{enumName} could not be converted to {typeof(TFlag)}.");
+            return flagValue;
+        }
+
+        public static TFlag EnumValuesToFlags<TEnum, TFlag>(this IEnumerable<TEnum> enumValues)
+            where TEnum : struct, Enum
+            where TFlag : struct, Enum
+        {
+            if (!typeof(TFlag).IsDefined(typeof(FlagsAttribute), false)) throw new ArgumentException($"The type {typeof(TFlag).Name} is not a [Flags] enum.");
+
+            TFlag result = default;
+            foreach (TEnum enumValue in enumValues) result.AddFlags(enumValue.EnumValueToFlag<TEnum, TFlag>());
+            return result;
+        }
+
+        private static class PrecomputedEnumValues<TEnum>
+            where TEnum : struct, Enum
+        {
+            public static IEnumerable<TEnum> Values => _valuesToNames.Keys;
+            public static IEnumerable<string> Names => _namesToValues.Keys;
+            public static IReadOnlyDictionary<TEnum, string> ValuesToNames => _valuesToNames;
+            public static IReadOnlyDictionary<string, TEnum> NamesToValues => _namesToValues;
+
+            private static readonly Dictionary<TEnum, string> _valuesToNames = new();
+            private static readonly Dictionary<string, TEnum> _namesToValues = new();
+
+            static PrecomputedEnumValues()
+            {
+                Type enumType = typeof(TEnum);
+                if (!enumType.IsDefined(typeof(FlagsAttribute), false)) throw new ArgumentException($"The type {enumType.Name} is not a [Flags] enum.");
+
+                foreach (TEnum value in Enum.GetValues(enumType))
+                {
+                    var name = Enum.GetName(enumType, value);
+                    _valuesToNames[value] = name;
+                    _namesToValues[name] = value;
                 }
             }
         }
@@ -68,7 +120,7 @@ namespace Toolbox
         /// <returns>Returns true if the enumValue has any of the flagsToCheck set; otherwise, false.</returns>
         public static bool HasAnyFlag<T>(this T enumValue, T flagsToCheck) where T : struct, Enum
         {
-            return (enumValue.ToUInt64() & flagsToCheck.ToUInt64()) != 0;
+            return (enumValue.ToInt() & flagsToCheck.ToInt()) != 0;
         }
 
         /// <summary>
@@ -80,7 +132,7 @@ namespace Toolbox
         /// <returns>True if the enum value has all the specified flags set; otherwise, false.</returns>
         public static bool HasAllFlags<T>(this T enumValue, T flagsToCheck) where T : struct, Enum
         {
-            return (enumValue.ToUInt64() & flagsToCheck.ToUInt64()) == flagsToCheck.ToUInt64();
+            return (enumValue.ToInt() & flagsToCheck.ToInt()) == flagsToCheck.ToInt();
         }
 
         /// <summary>
@@ -92,19 +144,7 @@ namespace Toolbox
         /// <returns><see langword="true"/> if the flag is set; otherwise, <see langword="false"/>.</returns>
         public static bool HasFlag<T>(this T enumValue, T flag) where T : struct, Enum
         {
-            return (enumValue.ToUInt64() & flag.ToUInt64()) != 0;
-        }
-
-        /// <summary>
-        /// Sets the specified flags on the enum value.
-        /// </summary>
-        /// <typeparam name="T">The type of the enum.</typeparam>
-        /// <param name="enumValue">The enum value to set the flags for.</param>
-        /// <param name="flagsToSet">The flags to set on the enum value.</param>
-        /// <returns>The enum value with the specified flags set.</returns>
-        public static T SetFlags<T>(this T enumValue, T flagsToSet) where T : struct, Enum
-        {
-            return FromUInt64<T>(enumValue.ToUInt64() | flagsToSet.ToUInt64());
+            return (enumValue.ToInt() & flag.ToInt()) != 0;
         }
 
         /// <summary>
@@ -116,7 +156,7 @@ namespace Toolbox
         /// <returns>The enum value with the specified flags cleared.</returns>
         public static T ClearFlags<T>(this T enumValue, T flagsToClear) where T : struct, Enum
         {
-            return FromUInt64<T>(enumValue.ToUInt64() & ~flagsToClear.ToUInt64());
+            return FromInt<T>(enumValue.ToInt() & ~flagsToClear.ToInt());
         }
 
         /// <summary>
@@ -128,7 +168,7 @@ namespace Toolbox
         /// <returns>The enum value with the toggled flags.</returns>
         public static T ToggleFlags<T>(this T enumValue, T flagsToToggle) where T : struct, Enum
         {
-            return FromUInt64<T>(enumValue.ToUInt64() ^ flagsToToggle.ToUInt64());
+            return FromInt<T>(enumValue.ToInt() ^ flagsToToggle.ToInt());
         }
 
         /// <summary>
@@ -137,14 +177,18 @@ namespace Toolbox
         /// <typeparam name="T">The type of the enum flags.</typeparam>
         /// <param name="flags">The flags to combine.</param>
         /// <returns>The combined flags as a single value of type T.</returns>
-        public static T CombineFlags<T>(params T[] flags) where T : struct, Enum
+        public static T AddFlags<T>(params T[] flags) where T : struct, Enum
         {
-            ulong combinedValue = 0;
-            foreach (T flag in flags)
-            {
-                combinedValue |= flag.ToUInt64();
-            }
-            return FromUInt64<T>(combinedValue);
+            int combinedValue = 0;
+            foreach (T flag in flags) combinedValue |= flag.ToInt();
+            return FromInt<T>(combinedValue);
+        }
+
+        public static T AddFlags<T>(this T source, params T[] flags) where T : struct, Enum
+        {
+            int combinedValue = source.ToInt();
+            foreach (T flag in flags) combinedValue |= flag.ToInt();
+            return FromInt<T>(combinedValue);
         }
 
         /// <summary>
@@ -157,29 +201,31 @@ namespace Toolbox
         /// <returns>The result of combining the flags</returns>
         public static T CombineFlagsOrDefault<T>(T defaultValue, params T[] flags) where T : struct, Enum
         {
-            return flags?.Length > 0 ? CombineFlags(flags) : defaultValue;
+            return flags?.Length > 0 ? AddFlags(flags) : defaultValue;
         }
 
         // Enum Information
 
-        /// <summary>
-        /// Gets an IEnumerable of type T containing the names of the specified enumeration.
-        /// </summary>
-        /// <typeparam name="T">The type of the enumeration.</typeparam>
-        /// <returns>An IEnumerable of type string containing the names of the enumeration values.</returns>
-        public static IEnumerable<string> GetNames<T>() where T : struct, Enum
-        {
-            return Enum.GetNames(typeof(T));
-        }
+        // Flag Operations
 
         /// <summary>
-        /// Gets an IEnumerable of type T containing all the values of the specified enumeration.
+        /// Gets an IReadOnlyList of type T containing all the values of the specified enumeration.
         /// </summary>
         /// <typeparam name="T">The type of the enumeration.</typeparam>
         /// <returns>An IEnumerable of type T containing all the values of the enumeration.</returns>
         public static IEnumerable<T> GetValues<T>() where T : struct, Enum
         {
-            return Enum.GetValues(typeof(T)).Cast<T>();
+            return PrecomputedEnumValues<T>.Values;
+        }
+
+        /// <summary>
+        /// Gets an IReadOnlyList of type T containing the names of the specified enumeration.
+        /// </summary>
+        /// <typeparam name="T">The type of the enumeration.</typeparam>
+        /// <returns>An IEnumerable of type string containing the names of the enumeration values.</returns>
+        public static IEnumerable<string> GetNames<T>() where T : struct, Enum
+        {
+            return PrecomputedEnumValues<T>.Names;
         }
 
         /// <summary>
@@ -352,7 +398,7 @@ namespace Toolbox
         /// <returns>True if the name is a valid name for the enumeration type, otherwise false.</returns>
         public static bool IsValidName<T>(string name) where T : struct, Enum
         {
-            return Enum.GetNames(typeof(T)).Contains(name);
+            return PrecomputedEnumValues<T>.Names.Contains(name);
         }
 
         /// <summary>

@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Toolbox.RxTree
 {
-    public class RxTreeNode : MonoBehaviour, ILazy<RxTreeNode>
+    public class RxTreeNode : MonoBehaviour, IReady<RxTreeNode>
     {
         private RxRef<RxTreeNode> _parent;
         public RxRef<RxTreeNode> Parent => Ready().Ancestor(ref _parent);

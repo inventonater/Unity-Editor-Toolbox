@@ -5,41 +5,55 @@ using UnityEngine;
 
 namespace Toolbox
 {
-    public interface IQueryAlgorithm<T> where T : Component
+    public enum EHierarchyQueryAlgorithm
     {
-        IEnumerable<T> Traverse(Transform origin, IQueryFilter<T> queryFilter);
-    }
+        None,
+        SameGameObject,
 
-    public enum EQueryAlgorithm
-    {
+        ImmediateDescendants,
         DescendantsBreadthFirst,
         DescendantsDepthFirst,
+
+        ImmediateAncestor,
         Ancestors,
         AncestorsTopDown,
+
         SameTreeLevel,
+        EntireScene,
+
         Compound,
-        TraverseFindObjectsOfType,
-        ImmediateChildren
+
+        // IntersectsRay,
+        // IntersectsFrustum,
+        // IntersectsSphere,
+        // IntersectsBox,
+        // FindNearestNeighbors,
+        // FindObjectsInRange,
     }
 
     public static class HierarchyQueryAlgorithm<T> where T : Component
     {
-        private static readonly IReadOnlyDictionary<EQueryAlgorithm, Func<IQueryAlgorithm<T>>> TraversalAlgorithmFactories =
-            new Dictionary<EQueryAlgorithm, Func<IQueryAlgorithm<T>>>
-            {
-                { EQueryAlgorithm.DescendantsBreadthFirst, () => new DescendantsBreadthFirst() },
-                { EQueryAlgorithm.DescendantsDepthFirst, () => new DescendantsDepthFirst() },
-                { EQueryAlgorithm.Ancestors, () => new Ancestors() },
-                { EQueryAlgorithm.AncestorsTopDown, () => new AncestorsTopDown() },
-                { EQueryAlgorithm.SameTreeLevel, () => new SameTreeLevel() },
-                { EQueryAlgorithm.Compound, () => new Compound() },
-                { EQueryAlgorithm.TraverseFindObjectsOfType, () => new SceneSearch() },
-                { EQueryAlgorithm.ImmediateChildren, () => new ImmediateChildren() }
-            };
-
-        public static IQueryAlgorithm<T> Create(EQueryAlgorithm algorithm)
+        private static readonly IReadOnlyDictionary<EHierarchyQueryAlgorithm, Func<IQueryAlgorithm<T>>> Factories = new Dictionary<EHierarchyQueryAlgorithm, Func<IQueryAlgorithm<T>>>
         {
-            if (TraversalAlgorithmFactories.TryGetValue(algorithm, out var factory)) return factory();
+            { EHierarchyQueryAlgorithm.None, () => EmptyQueryAlgorithm<T>.Empty },
+            { EHierarchyQueryAlgorithm.SameGameObject, () => new SameGameObject() },
+
+            { EHierarchyQueryAlgorithm.ImmediateDescendants, () => new ImmediateDescendants() },
+            { EHierarchyQueryAlgorithm.DescendantsBreadthFirst, () => new DescendantsBreadthFirst() },
+            { EHierarchyQueryAlgorithm.DescendantsDepthFirst, () => new DescendantsDepthFirst() },
+
+            { EHierarchyQueryAlgorithm.ImmediateAncestor, () => new ImmediateAncestor() },
+            { EHierarchyQueryAlgorithm.Ancestors, () => new Ancestors() },
+            { EHierarchyQueryAlgorithm.AncestorsTopDown, () => new AncestorsTopDown() },
+
+            { EHierarchyQueryAlgorithm.SameTreeLevel, () => new SameTreeLevel() },
+            { EHierarchyQueryAlgorithm.EntireScene, () => new EntireScene() },
+            { EHierarchyQueryAlgorithm.Compound, () => new Compound() },
+        };
+
+        public static IQueryAlgorithm<T> Create(EHierarchyQueryAlgorithm algorithm)
+        {
+            if (Factories.TryGetValue(algorithm, out var factory)) return factory();
             throw new ArgumentOutOfRangeException(nameof(algorithm), algorithm, "Unsupported traversal algorithm.");
         }
 
@@ -155,7 +169,16 @@ namespace Toolbox
             private readonly List<IQueryAlgorithm<T>> _traversals;
             public IReadOnlyCollection<IQueryAlgorithm<T>> Traversals => _traversals;
 
-            public Compound(params IQueryAlgorithm<T>[] traversals) => _traversals = traversals.ToList();
+            public Compound(params IQueryAlgorithm<T>[] traversals) : this(traversals.ToList())
+            {
+            }
+
+            public Compound(IEnumerable<IQueryAlgorithm<T>> traversals) : this(traversals.ToList())
+            {
+            }
+
+            public Compound(List<IQueryAlgorithm<T>> traversals) => _traversals = traversals;
+
             public void Add(IQueryAlgorithm<T> query) => _traversals.Add(query);
             public void Insert(int index, IQueryAlgorithm<T> query) => _traversals.Insert(index, query);
             public void Remove(IQueryAlgorithm<T> query) => _traversals.Remove(query);
@@ -163,6 +186,7 @@ namespace Toolbox
 
             public IEnumerable<T> Traverse(Transform origin, IQueryFilter<T> queryFilter)
             {
+                // todo somehow sort these tarversals first?
                 foreach (var traversal in _traversals)
                 {
                     foreach (var component in traversal.Traverse(origin, queryFilter)) yield return component;
@@ -170,7 +194,7 @@ namespace Toolbox
             }
         }
 
-        public class SceneSearch : IQueryAlgorithm<T>
+        public class EntireScene : IQueryAlgorithm<T>
         {
             public IEnumerable<T> Traverse(Transform origin, IQueryFilter<T> queryFilter)
             {
@@ -185,7 +209,18 @@ namespace Toolbox
             }
         }
 
-        public class ImmediateChildren : IQueryAlgorithm<T>
+        public class SameGameObject : IQueryAlgorithm<T>
+        {
+            public IEnumerable<T> Traverse(Transform origin, IQueryFilter<T> queryFilter)
+            {
+                foreach (var component in queryFilter.VisitComponentsOnGameObject(origin, origin.gameObject))
+                {
+                    yield return component;
+                }
+            }
+        }
+
+        public class ImmediateDescendants : IQueryAlgorithm<T>
         {
             public IEnumerable<T> Traverse(Transform origin, IQueryFilter<T> queryFilter)
             {
@@ -197,6 +232,25 @@ namespace Toolbox
                     {
                         yield return component;
                     }
+                }
+            }
+        }
+
+        public class ImmediateAncestor : IQueryAlgorithm<T>
+        {
+            public IEnumerable<T> Traverse(Transform origin, IQueryFilter<T> queryFilter)
+            {
+                var current = origin; // Start from the origin object, so we can potentially include it
+
+                foreach (var component in queryFilter.VisitComponentsOnGameObject(origin, current.gameObject))
+                {
+                    yield return component;
+                }
+
+                if (current.parent == null) yield break;
+                foreach (var component in queryFilter.VisitComponentsOnGameObject(origin, current.parent.gameObject))
+                {
+                    yield return component;
                 }
             }
         }

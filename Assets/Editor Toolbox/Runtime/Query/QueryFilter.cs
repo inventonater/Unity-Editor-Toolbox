@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEngine;
 
@@ -45,7 +46,6 @@ namespace Toolbox
 
         public InactivePolicyFlags InactivePolicy { get; set; } = InactivePolicyFlags.SkipAllInactive;
         public bool ShouldSkip(GameObject gameObject) => !gameObject.activeInHierarchy && InactivePolicy.HasFlag(InactivePolicyFlags.SkipInactiveGameObjects);
-
         public bool ShouldSkip(T component)
         {
             if (component is Behaviour behaviour && !behaviour.enabled) return InactivePolicy.HasFlag(InactivePolicyFlags.SkipInactiveComponents);
@@ -53,18 +53,10 @@ namespace Toolbox
         }
 
         private readonly List<T> _visitComponentsCache = new();
-
         public IEnumerable<T> VisitComponentsOnGameObject(Component origin, GameObject visitedGameObject)
         {
-            if (ShouldSkip(visitedGameObject)) yield break;
-
             visitedGameObject.GetComponents(_visitComponentsCache);
-            for (var i = 0; i < _visitComponentsCache.Count; i++)
-            {
-                var visit = _visitComponentsCache[i];
-                if (ShouldSkip(visit)) continue;
-                if (MatchesFilters(origin, visit)) yield return visit;
-            }
+            foreach (var component in _visitComponentsCache.SelectMany(t => VisitComponent(origin, t))) yield return component;
         }
 
         public IEnumerable<T> VisitComponent(Component origin, T visited)

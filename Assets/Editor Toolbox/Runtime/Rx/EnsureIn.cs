@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Linq;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
-using static Toolbox.Hierarchy;
 
 namespace Toolbox
 {
@@ -23,23 +22,26 @@ namespace Toolbox
                 throw new ArgumentNullException(nameof(searcher), $"Ensure<{typeof(T)}> called with null searcher");
             }
 
-            if (searchFlags.IsNone()) searchFlags = relation.ToFlags();
+            if (searchFlags.IsNone()) searchFlags = relation.ToRelationFlags();
 
-            T result = Search<T>(searcher, searchFlags);
+            var query = searcher.Query<T>(searchFlags);
+
+            T result = query.FirstOrDefault();
             if (result != null) return result;
-
-            return TryCreate<T>(searcher, relation, defaultType, out result) ? result : null;
+            return TryCreate(searcher, relation, defaultType, out result) ? result : null;
         }
 
         // reimplement this with Rx
-        public static IEnumerator WaitForDependency<T>(Component searcher, RelationFlags search, float timeout = 10f) where T : Component
+        public static IEnumerator YieldFor<T>(Component searcher, RelationFlags relationFlags, float timeout = 10f) where T : Component
         {
+            var query = searcher.Query<T>(relationFlags);
+
             float startTime = Time.time;
             T result = null;
 
             while (result == null)
             {
-                result = Search<T>(searcher, search);
+                result = query.FirstOrDefault();
                 if (result != null) yield break;
 
                 if (Time.time - startTime > timeout)
@@ -52,29 +54,21 @@ namespace Toolbox
             }
         }
 
-        public static T Search<T>(this Component searcher, RelationFlags search) where T : Component
+        public static async UniTask<T> YieldForAsync<T>(Component searcher, RelationFlags relationFlags, float timeout = 10f, PlayerLoopTiming timing = PlayerLoopTiming.Update) where T : Component
         {
-            var compoundAlgorithm = new HierarchyQueryAlgorithm<T>.Compound();
+            var query = searcher.Query<T>(relationFlags);
 
-            foreach (var flag in search.GetFlags())
+            using var timeoutController = new TimeoutController();
+            timeoutController.Timeout(TimeSpan.FromSeconds(timeout));
+            while (!timeoutController.IsTimeout())
             {
-                // should use a specific algorithm here.. Descendants is not specific enough?
-                if (!SearchAlgorithms.TryGetValue(flag, out var foundAlgorithm)) continue;
-
-                // todo need to manage order of algorithm execution somehow
-                compoundAlgorithm.Add(foundAlgorithm);
+                var result = query.FirstOrDefault();
+                if (result != null) return result;
+                await UniTask.Yield(timing);
             }
 
-            var query = new Query<T>(searcher, algorithm);
-            return query.FirstOrDefault();
-
-            // foreach (var flag in search.GetFlags())
-            // {
-            //     if (!SearchFunctions.TryGetValue(flag, out var searchFunction)) continue;
-            //     var result = searchFunction(searcher, typeof(T)) as T;
-            //     if (result != null) return result;
-            // }
-            // return null;
+            Debug.LogError($"Timed out waiting for dependency of type {typeof(T)}");
+            return null;
         }
 
         private static bool TryCreate<T>(Component searcher, Relation relation, Type defaultType, out T result) where T : Component

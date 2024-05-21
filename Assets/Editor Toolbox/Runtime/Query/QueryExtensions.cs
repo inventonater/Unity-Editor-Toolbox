@@ -1,6 +1,6 @@
 ﻿using System.Linq;
 using UnityEngine;
-using static Toolbox.EQueryAlgorithm;
+using static Toolbox.EHierarchyQueryAlgorithm;
 
 namespace Toolbox
 {
@@ -16,7 +16,7 @@ namespace Toolbox
             var ancestorsTopDown = new HierarchyQueryAlgorithm<T>.AncestorsTopDown();
             var descendantsBreadthFirst = new HierarchyQueryAlgorithm<T>.DescendantsBreadthFirst();
             var compoundTraversal = new HierarchyQueryAlgorithm<T>.Compound(ancestorsTopDown, descendantsBreadthFirst);
-            return component.Query<T>(compoundTraversal);
+            return component.Query(compoundTraversal);
         }
 
         public static Query<T> QueryDescendants<T>(this Component component) where T : Component
@@ -26,22 +26,28 @@ namespace Toolbox
 
         public static Query<T> QueryChildren<T>(this Component component) where T : Component
         {
-            return component.Query<T>(ImmediateChildren);
+            return component.Query<T>(ImmediateDescendants);
         }
 
         public static Query<T> QueryScene<T>(this Component component) where T : Component
         {
-            return new Query<T>(component, new HierarchyQueryAlgorithm<T>.SceneSearch());
+            return new Query<T>(component, new HierarchyQueryAlgorithm<T>.EntireScene());
         }
 
-        public static Query<T> Query<T>(this Component component, EQueryAlgorithm queryAlgorithm) where T : Component
+        public static Query<T> Query<T>(this Component component, EHierarchyQueryAlgorithm hierarchyQueryAlgorithm) where T : Component
         {
-            return component.Query(HierarchyQueryAlgorithm<T>.Create(queryAlgorithm));
+            return component.Query(HierarchyQueryAlgorithm<T>.Create(hierarchyQueryAlgorithm));
         }
 
         public static Query<T> Query<T>(this Component component, IQueryAlgorithm<T> queryAlgorithm) where T : Component
         {
             return new(component, queryAlgorithm);
+        }
+
+        public static Query<T> Query<T>(this Component origin, RelationFlags flags) where T : Component
+        {
+            var algorithms = flags.ToQueryAlgorithm<T>();
+            return new Query<T>(origin, new HierarchyQueryAlgorithm<T>.Compound(algorithms));
         }
 
         public static T Resolve<T>(this Component component, Query<T> query = null) where T : Component

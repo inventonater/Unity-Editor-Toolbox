@@ -15,10 +15,10 @@ namespace Toolbox
     {
     }
 
-    public class Sample : MonoBehaviour, ILazy<Sample>
+    public class Sample : MonoBehaviour, IReady<Sample>
     {
-        private RxValue<Vector3> _position;
-        public RxValue<Vector3> Position => new(() => transform.position, v => transform.position = v);
+        private RxWrapper<Vector3> _position;
+        public RxWrapper<Vector3> Position => I.RxWrapper(ref _position,  () => transform.position, v => transform.position = v);
 
         private RxRef<Canvas> _parentCanvas;
         public RxRef<Canvas> ParentCanvas => I.Ancestor(ref _parentCanvas);
