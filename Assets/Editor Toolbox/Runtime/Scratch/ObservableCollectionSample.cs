@@ -33,14 +33,14 @@ public class ObservableCollectionSample : MonoBehaviour
     void DoThing()
     {
         var observableDictionary = new ObservableDictionary<int, string>();
-        Observable<CollectionAddEvent<KeyValuePair<int,string>>> observeAdd = observableDictionary.ObserveAdd();
+        Observable<CollectionAddEvent<KeyValuePair<int, string>>> observeAdd = observableDictionary.ObserveAdd();
         observeAdd.Subscribe(collectionAddEvent =>
-            {
-                (int addEventKey, var keyValuePair) = collectionAddEvent;
-                (int key, string value) = keyValuePair;
+        {
+            (int addEventKey, var keyValuePair) = collectionAddEvent;
+            (int key, string value) = keyValuePair;
 
-                Debug.Log($"Add [{key}]={value}");
-            });
+            Debug.Log($"Add [{key}]={value}");
+        });
 
         observableDictionary.ObserveReplace(destroyCancellationToken)
             .Subscribe(replaceEvent =>
@@ -69,11 +69,17 @@ public class ObservableCollectionSample : MonoBehaviour
         {
             if (eventArgs.Action == NotifyCollectionChangedAction.Add)
             {
-                eventArgs.NewView.transform.SetParent(root.transform);
+                foreach (var newView in eventArgs.NewViews)
+                {
+                    newView.transform.SetParent(root.transform);
+                }
             }
             else if (eventArgs.Action == NotifyCollectionChangedAction.Remove)
             {
-                GameObject.Destroy(eventArgs.OldView);
+                foreach (var oldView in eventArgs.OldViews)
+                {
+                    Destroy(oldView);
+                }
             }
         }
 
